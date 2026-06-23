@@ -33,6 +33,7 @@ import {
   validateHeaderInput,
   validateLinkInput,
 } from "@/lib/security/validate";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 const COOKIE_NAME = "admin_session";
 
@@ -91,7 +92,7 @@ export async function loginAction(formData: FormData): Promise<void> {
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(),
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
   });

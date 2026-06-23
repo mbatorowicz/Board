@@ -69,12 +69,15 @@ export async function verifyAdminSessionToken(
   }
 
   const tokenHash = hashToken(token);
-  const sessions = pruneExpired(await readSessions());
-  const valid = sessions.some((session) =>
+  const sessions = await readSessions();
+  const pruned = pruneExpired(sessions);
+  const valid = pruned.some((session) =>
     matchesHash(session.tokenHash, tokenHash),
   );
 
-  await writeSessions(sessions);
+  if (pruned.length !== sessions.length) {
+    await writeSessions(pruned);
+  }
   return valid;
 }
 

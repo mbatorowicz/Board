@@ -105,6 +105,15 @@ tar -czf backup-homepage-$(date +%Y%m%d).tar.gz data/
 
 ### 5. Aktualizacja
 
+**Skopiowanie plików na NAS nie wystarczy** — kontener działa ze **zbuilowanego obrazu**. Po podmianie kodu w `/share/Container/Board/` (bez folderu `data/`) w Container Station:
+
+1. **Applications** → aplikacja `board` → **Stop**
+2. **Actions** → **Rebuild** (lub usuń aplikację i utwórz ponownie z tym samym YAML)
+3. Poczekaj na koniec buildu (10–20 min)
+4. W przeglądarce: twarde odświeżenie `Ctrl+Shift+R` (to nie cache serwera — stary obraz Dockera)
+
+Na QNAP przy `http://` **nie ustawiaj** `COOKIE_SECURE=true` — logowanie do `/admin` wymaga zwykłych ciasteczek (bez flagi Secure).
+
 ```bash
 git pull   # jeśli używasz repozytorium
 docker compose up -d --build

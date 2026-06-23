@@ -7,6 +7,7 @@ import { getClientIpFromHeaders } from "@/lib/security/client-ip";
 import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { RATE_LIMITS } from "@/lib/security/limits";
 import { validateAcknowledgmentName } from "@/lib/security/validate";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 export async function acknowledgeAction(formData: FormData): Promise<void> {
   const headerList = await headers();
@@ -35,7 +36,7 @@ export async function acknowledgeAction(formData: FormData): Promise<void> {
   cookieStore.set(ACK_COOKIE, JSON.stringify({ name, at: createdAt }), {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(),
     path: "/",
     maxAge: 60 * 60 * 24 * 180,
   });
