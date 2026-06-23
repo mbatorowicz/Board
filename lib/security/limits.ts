@@ -8,6 +8,9 @@ export const LIMITS = {
   allowlistRaw: 8192,
   maxAcknowledgments: 5_000,
   certFeedMaxBytes: 5_000_000,
+  logoMaxBytes: 2_000_000,
+  headerTitle: 120,
+  headerSubtitle: 200,
 } as const;
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 8;

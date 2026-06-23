@@ -93,3 +93,57 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+.subheading {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.subheading:first-of-type {
+  margin-top: 0;
+}
+
+.headerPreview {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.headerPreviewBrand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.headerPreviewLogo {
+  display: block;
+  height: 56px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  flex: none;
+}
+
+.headerPreviewTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.headerPreviewSubtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.fileInput {
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--text);
+}

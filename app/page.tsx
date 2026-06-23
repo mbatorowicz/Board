@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import Clock from "@/components/Clock";
+import PageHeader from "@/components/PageHeader";
 import CertCard from "@/components/CertCard";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import LinkTile from "@/components/LinkTile";
@@ -9,7 +9,7 @@ import { getAnnouncements } from "@/lib/announcements";
 import { ACK_COOKIE } from "@/lib/acknowledgments";
 import { getQuickLinks } from "@/lib/links";
 import { getSettings } from "@/lib/settings";
-import { OFFICE_NAME } from "@/lib/config";
+import { getOfficeLogo } from "@/lib/logo";
 import { copy } from "@/lib/copy";
 import ui from "@/styles/ui.module.css";
 import styles from "./page.module.css";
@@ -32,12 +32,13 @@ function readConfirmation(
 }
 
 export default async function Home() {
-  const [allAdvisories, announcements, quickLinks, settings, cookieStore] =
+  const [allAdvisories, announcements, quickLinks, settings, logo, cookieStore] =
     await Promise.all([
       getAdvisories(),
       getAnnouncements(),
       getQuickLinks(),
       getSettings(),
+      getOfficeLogo(),
       cookies(),
     ]);
 
@@ -50,13 +51,11 @@ export default async function Home() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerText}>
-          <h1 className={styles.title}>{OFFICE_NAME}</h1>
-          <p className={styles.subtitle}>{copy.site.subtitle}</p>
-        </div>
-        <Clock />
-      </header>
+      <PageHeader
+        logo={logo}
+        title={settings.headerTitle}
+        subtitle={settings.headerSubtitle}
+      />
 
       <section
         className={`${ui.panel} ${styles.linksBar}`}

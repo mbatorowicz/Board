@@ -6,6 +6,8 @@ import { getAdvisories } from "@/lib/cert";
 import { getQuickLinks } from "@/lib/links";
 import { getSettings } from "@/lib/settings";
 import { getAllowedIps } from "@/lib/allowlist";
+import { getOfficeLogo } from "@/lib/logo";
+import { HeaderBrandPreview } from "@/components/PageHeader";
 import { copy, withCount } from "@/lib/copy";
 import { formatAdminDateTime, formatIso } from "@/lib/format";
 import {
@@ -22,10 +24,13 @@ import {
   isAuthed,
   loginAction,
   logoutAction,
+  removeLogoAction,
   saveAllowlistAction,
+  saveHeaderAction,
   saveCertCategoriesAction,
   updateAction,
   updateLinkAction,
+  uploadLogoAction,
 } from "./actions";
 import styles from "./admin.module.css";
 
@@ -40,6 +45,10 @@ export default async function AdminPage({
 }) {
   const params = await searchParams;
   const hasError = params.error !== undefined;
+  const logoStatus =
+    typeof params.logo === "string" ? params.logo : undefined;
+  const headerStatus =
+    typeof params.header === "string" ? params.header : undefined;
 
   if (!getAdminPassword()) {
     return (
@@ -90,6 +99,7 @@ export default async function AdminPage({
     links,
     settings,
     allowedIps,
+    logo,
     headerList,
   ] = await Promise.all([
     getAnnouncements(),
@@ -98,6 +108,7 @@ export default async function AdminPage({
     getQuickLinks(),
     getSettings(),
     getAllowedIps(),
+    getOfficeLogo(),
     headers(),
   ]);
 
@@ -122,6 +133,100 @@ export default async function AdminPage({
           </button>
         </form>
       </div>
+
+      <section className={`${ui.surface} ${styles.card}`}>
+        <h2 className={ui.sectionTitle}>{copy.admin.headerTitle}</h2>
+
+        <h3 className={styles.subheading}>{copy.admin.headerPreview}</h3>
+        <div className={styles.headerPreview}>
+          <HeaderBrandPreview
+            logo={logo}
+            title={settings.headerTitle}
+            subtitle={settings.headerSubtitle}
+            className={styles.headerPreviewBrand}
+            logoClassName={styles.headerPreviewLogo}
+            titleClassName={styles.headerPreviewTitle}
+            subtitleClassName={styles.headerPreviewSubtitle}
+          />
+        </div>
+
+        <h3 className={styles.subheading}>{copy.admin.headerTextForm}</h3>
+        {headerStatus === "ok" ? (
+          <p className={ui.notice}>{copy.admin.headerSaved}</p>
+        ) : null}
+        {headerStatus === "invalid" ? (
+          <p className={ui.error}>{copy.admin.headerInvalid}</p>
+        ) : null}
+        <form action={saveHeaderAction} className={ui.form}>
+          <label className={ui.label}>
+            {copy.labels.headerTitle}
+            <input
+              className={ui.input}
+              type="text"
+              name="headerTitle"
+              defaultValue={settings.headerTitle}
+              required
+            />
+          </label>
+          <label className={ui.label}>
+            {copy.labels.headerSubtitle}
+            <input
+              className={ui.input}
+              type="text"
+              name="headerSubtitle"
+              defaultValue={settings.headerSubtitle}
+            />
+          </label>
+          <button className={ui.button} type="submit">
+            {copy.actions.saveHeader}
+          </button>
+        </form>
+
+        <h3 className={styles.subheading}>{copy.admin.logoForm}</h3>
+        <p className={ui.notice}>{copy.admin.logoHelp}</p>
+        {logoStatus === "ok" ? (
+          <p className={ui.notice}>Logo zostało zapisane.</p>
+        ) : null}
+        {logoStatus === "removed" ? (
+          <p className={ui.notice}>Logo zostało usunięte.</p>
+        ) : null}
+        {logoStatus === "invalid" ? (
+          <p className={ui.error}>
+            Nie udało się wgrać logo. Dozwolone: PNG, JPG lub WebP, maks. 2 MB.
+          </p>
+        ) : null}
+        {!logo ? (
+          <p className={ui.emptyPlain}>{copy.admin.logoMissing}</p>
+        ) : null}
+        <form
+          action={uploadLogoAction}
+          className={ui.form}
+          encType="multipart/form-data"
+        >
+          <label className={ui.label}>
+            {copy.labels.logoFile}
+            <input
+              className={styles.fileInput}
+              type="file"
+              name="logo"
+              accept="image/png,image/jpeg,image/webp"
+            />
+          </label>
+          <button className={ui.button} type="submit">
+            {copy.actions.uploadLogo}
+          </button>
+        </form>
+        {logo ? (
+          <form action={removeLogoAction}>
+            <button
+              className={`${ui.button} ${ui.buttonGhost}`}
+              type="submit"
+            >
+              {copy.actions.removeLogo}
+            </button>
+          </form>
+        ) : null}
+      </section>
 
       <section className={`${ui.surface} ${styles.card}`}>
         <h2 className={ui.sectionTitle}>{copy.admin.allowlistTitle}</h2>

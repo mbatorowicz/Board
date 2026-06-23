@@ -17,6 +17,7 @@ import {
 } from "@/lib/links";
 import { getSettings, saveSettings } from "@/lib/settings";
 import { saveAllowedIps } from "@/lib/allowlist";
+import { removeOfficeLogo, saveOfficeLogo } from "@/lib/logo";
 import {
   createAdminSessionToken,
   revokeAdminSessionToken,
@@ -29,6 +30,7 @@ import { RATE_LIMITS, SESSION_TTL_SECONDS } from "@/lib/security/limits";
 import {
   parseAllowlistInput,
   validateAnnouncementInput,
+  validateHeaderInput,
   validateLinkInput,
 } from "@/lib/security/validate";
 
@@ -199,4 +201,50 @@ export async function saveAllowlistAction(formData: FormData): Promise<void> {
   const raw = String(formData.get("ips") ?? "");
   await saveAllowedIps(parseAllowlistInput(raw));
   revalidatePath("/admin");
+}
+
+export async function saveHeaderAction(formData: FormData): Promise<void> {
+  await requireAuth();
+  const input = validateHeaderInput({
+    headerTitle: String(formData.get("headerTitle") ?? ""),
+    headerSubtitle: String(formData.get("headerSubtitle") ?? ""),
+  });
+
+  if (!input) {
+    redirect("/admin?header=invalid");
+  }
+
+  const settings = await getSettings();
+  await saveSettings({ ...settings, ...input });
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?header=ok");
+}
+
+export async function uploadLogoAction(formData: FormData): Promise<void> {
+  await requireAuth();
+  const file = formData.get("logo");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/admin?logo=invalid");
+  }
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await saveOfficeLogo(buffer);
+  } catch {
+    redirect("/admin?logo=invalid");
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?logo=ok");
+}
+
+export async function removeLogoAction(): Promise<void> {
+  await requireAuth();
+  await removeOfficeLogo();
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?logo=removed");
 }

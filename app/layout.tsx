@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { OFFICE_NAME } from "@/lib/config";
 import { copy } from "@/lib/copy";
+import { getSettings } from "@/lib/settings";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,10 +14,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "latin-ext"],
 });
 
-export const metadata: Metadata = {
-  title: copy.site.pageTitle(OFFICE_NAME),
-  description: copy.site.metaDescription,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return {
+    title: copy.site.pageTitle(settings.headerTitle),
+    description: copy.site.metaDescription,
+  };
+}
 
 export default function RootLayout({
   children,

@@ -124,6 +124,7 @@ Ustaw zmienne środowiskowe jak w `.env.example`. Dane zapisują się w `.data/`
 - `lib/links.ts` – szybkie linki
 - `lib/settings.ts` – widoczność kategorii CERT
 - `lib/allowlist.ts` – whitelista IP
+- `lib/logo.ts` – logo urzędu (plik w `.data/`, upload w panelu admina)
 - `proxy.ts` – egzekwowanie allowlisty IP
 - `Dockerfile`, `docker-compose.yml` – wdrożenie na QNAP
 - `components/` – komponenty UI

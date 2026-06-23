@@ -37,6 +37,8 @@ export interface QuickLinkInput {
 
 export interface SiteSettings {
   hiddenCertCategories: string[];
+  headerTitle: string;
+  headerSubtitle: string;
 }
 
 export interface Acknowledgment {

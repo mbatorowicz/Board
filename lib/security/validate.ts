@@ -74,6 +74,18 @@ export function validateAcknowledgmentName(name: string): string | null {
   return isNonEmpty(value) ? value : null;
 }
 
+export function validateHeaderInput(input: {
+  headerTitle: string;
+  headerSubtitle: string;
+}): { headerTitle: string; headerSubtitle: string } | null {
+  const headerTitle = clampText(input.headerTitle, LIMITS.headerTitle);
+  const headerSubtitle = clampText(input.headerSubtitle, LIMITS.headerSubtitle);
+  if (!isNonEmpty(headerTitle)) {
+    return null;
+  }
+  return { headerTitle, headerSubtitle };
+}
+
 export function sanitizeCertLink(link: string): string {
   return isSafeHttpUrl(link) ? link : "";
 }

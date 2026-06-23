@@ -18,6 +18,22 @@
   border-bottom: 1px solid var(--border);
 }
 
+.headerBrand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.logo {
+  display: block;
+  height: 56px;
+  width: auto;
+  max-width: min(220px, 40vw);
+  object-fit: contain;
+  flex: none;
+}
+
 .headerText {
   display: flex;
   flex-direction: column;
