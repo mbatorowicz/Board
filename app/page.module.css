@@ -53,6 +53,13 @@
   color: var(--text-muted);
 }
 
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+}
+
 .main {
   display: grid;
   grid-template-columns: 1fr;
@@ -69,10 +76,4 @@
 .linksBar,
 .ackPanel {
   width: 100%;
-}
-
-.linksGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
 }

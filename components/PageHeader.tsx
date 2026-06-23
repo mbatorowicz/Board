@@ -1,6 +1,7 @@
 import { OFFICE_NAME } from "@/lib/config";
 import { officeLogoUrl, type OfficeLogo } from "@/lib/logo";
 import Clock from "@/components/Clock";
+import ThemeToggle from "@/components/ThemeToggle";
 import styles from "@/app/page.module.css";
 
 export default function PageHeader({
@@ -29,7 +30,10 @@ export default function PageHeader({
           <p className={styles.subtitle}>{subtitle}</p>
         </div>
       </div>
-      <Clock />
+      <div className={styles.headerActions}>
+        <ThemeToggle />
+        <Clock />
+      </div>
     </header>
   );
 }

@@ -11,6 +11,7 @@ export const LIMITS = {
   logoMaxBytes: 2_000_000,
   headerTitle: 120,
   headerSubtitle: 200,
+  personalLinksMax: 30,
 } as const;
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 8;

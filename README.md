@@ -59,9 +59,29 @@ Aplikacja działa jako kontener Docker. Dane trzymane są w folderze `data/` obo
 
 ### 2. Uruchomienie
 
-W katalogu projektu (Container Station → Create → Compose, albo SSH):
+#### Container Station (bez SSH) — zalecane na QNAP
+
+Standardowy `docker-compose.yml` używa `env_file: .env` — **Container Station tego nie obsługuje** przy wklejaniu YAML (błąd: `env file /tmp/.env not found`).
+
+Użyj pliku **`docker-compose.qnap.yml`**:
+
+1. Skopiuj cały projekt do `/share/Container/Board/` (File Station).
+2. Utwórz pusty folder `data/` obok plików projektu (jeśli nie ma).
+3. W **Container Station → Create → Create Application**:
+   - **Name:** `board` (nie „docker-compose”)
+   - Wklej treść `docker-compose.qnap.yml`
+   - W sekcji `environment` ustaw **`ADMIN_PASSWORD`** (silne hasło)
+   - Jeśli folder jest poza `/share/Container/Board`, popraw ścieżki `context` i `volumes`
+4. **Create** — pierwszy build może potrwać 10–20 min.
+
+Alternatywa: w YAML usuń blok `environment` i dodaj zmienne w **Advanced Settings → Environment** w Container Station.
+
+#### SSH / terminal
+
+W katalogu projektu:
 
 ```bash
+cp .env.example .env   # ustaw ADMIN_PASSWORD
 docker compose up -d --build
 ```
 

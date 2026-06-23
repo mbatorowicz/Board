@@ -101,6 +101,20 @@ export const copy = {
     loading: "Ładowanie…",
     ariaLabel: "Aktualna data i godzina",
   },
+  theme: {
+    switchToLight: "Włącz tryb jasny",
+    switchToDark: "Włącz tryb ciemny",
+  },
+  personalLinks: {
+    title: "Twoje linki",
+    add: "Dodaj własny link",
+    remove: "Usuń link",
+    badge: "Twój",
+    emptyLabel: "Podaj nazwę linku.",
+    invalidUrl: "Adres URL musi zaczynać się od https://",
+    limitReached: (max: number) =>
+      `Możesz dodać maksymalnie ${max} własnych linków.`,
+  },
 } as const;
 
 export function withCount(label: string, count: number): string {

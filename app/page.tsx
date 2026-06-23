@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import PageHeader from "@/components/PageHeader";
 import CertCard from "@/components/CertCard";
 import AnnouncementCard from "@/components/AnnouncementCard";
-import LinkTile from "@/components/LinkTile";
+import QuickLinksPanel from "@/components/QuickLinksPanel";
 import AcknowledgeBox from "@/components/AcknowledgeBox";
 import { getAdvisories } from "@/lib/cert";
 import { getAnnouncements } from "@/lib/announcements";
@@ -66,11 +66,7 @@ export default async function Home() {
             {copy.sections.quickLinks}
           </h2>
         </div>
-        <div className={styles.linksGrid}>
-          {quickLinks.map((link) => (
-            <LinkTile key={link.id} link={link} />
-          ))}
-        </div>
+        <QuickLinksPanel globalLinks={quickLinks} />
       </section>
 
       <main className={styles.main}>

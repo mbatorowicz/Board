@@ -60,6 +60,12 @@
     box-shadow 0.15s ease;
 }
 
+.linksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .linkTile:hover {
     transform: translateY(-2px);
@@ -86,6 +92,110 @@
 .linkDescription {
   font-size: 0.82rem;
   color: var(--text-muted);
+}
+
+.themeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .themeToggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.themeToggleIcon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.personalLinksBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+
+.personalLinksTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.personalLinksForm {
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+
+.personalLinkWrap {
+  position: relative;
+}
+
+.linkTilePersonal {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.personalLinkBadge {
+  position: absolute;
+  top: 8px;
+  right: 36px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.personalLinkRemove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .personalLinkRemove:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
 }
 
 .ackForm {

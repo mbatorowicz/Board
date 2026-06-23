@@ -1,10 +1,16 @@
 import type { QuickLink } from "@/lib/types";
 import styles from "./components.module.css";
 
-export default function LinkTile({ link }: { link: QuickLink }) {
+export default function LinkTile({
+  link,
+  className,
+}: {
+  link: QuickLink;
+  className?: string;
+}) {
   return (
     <a
-      className={styles.linkTile}
+      className={[styles.linkTile, className].filter(Boolean).join(" ")}
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"

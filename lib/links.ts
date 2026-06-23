@@ -1,4 +1,5 @@
 import type { QuickLink, QuickLinkInput } from "./types";
+import { createQuickLink } from "@/lib/quick-link";
 import { readJsonFile, writeJsonFile } from "@/lib/data-file";
 
 const FILE = "links.json";
@@ -58,13 +59,7 @@ export async function getQuickLinks(): Promise<QuickLink[]> {
 
 export async function addQuickLink(input: QuickLinkInput): Promise<void> {
   const links = await getQuickLinks();
-  const link: QuickLink = {
-    id: crypto.randomUUID(),
-    label: input.label,
-    url: input.url,
-    ...(input.description ? { description: input.description } : {}),
-  };
-  await writeList([...links, link]);
+  await writeList([...links, createQuickLink(input)]);
 }
 
 export async function updateQuickLink(

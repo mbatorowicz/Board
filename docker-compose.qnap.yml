@@ -1,0 +1,17 @@
+# Container Station (QNAP) — wklej ten plik zamiast docker-compose.yml
+# Ścieżki pod /share/Container/Board — dostosuj, jeśli folder jest gdzie indziej.
+
+services:
+  homepage:
+    build:
+      context: /share/Container/Board
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      ADMIN_PASSWORD: "ZMIEŃ-TO-HASLO"
+      OFFICE_NAME: "Urząd Gminy"
+      NODE_ENV: production
+    volumes:
+      - /share/Container/Board/data:/app/.data
+    restart: unless-stopped
