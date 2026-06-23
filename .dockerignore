@@ -1,0 +1,10 @@
+node_modules
+.next
+.data
+data
+.git
+.env*
+!.env.example
+README.md
+*.md
+npm-debug.log*

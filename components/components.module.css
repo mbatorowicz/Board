@@ -1,0 +1,150 @@
+/* Style specyficzne dla komponentów — reszta w styles/ui.module.css */
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  min-width: 220px;
+}
+
+.clockTime {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.clockDate {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.itemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.itemCritical {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.itemPinned {
+  border-color: var(--warning);
+}
+
+.linkTile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .linkTile:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+  }
+}
+
+.linkLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.linkArrow {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.linkDescription {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.ackForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ackIntro {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ackRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ackInput {
+  flex: 1 1 220px;
+}
+
+.ackConfirmed {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ackCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.ackConfirmedTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ackConfirmedText {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 520px) {
+  .ackRow > * {
+    flex: 1 1 100%;
+  }
+}

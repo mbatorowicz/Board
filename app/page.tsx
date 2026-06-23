@@ -1,66 +1,130 @@
-import Image from "next/image";
+import { cookies } from "next/headers";
+import Clock from "@/components/Clock";
+import CertCard from "@/components/CertCard";
+import AnnouncementCard from "@/components/AnnouncementCard";
+import LinkTile from "@/components/LinkTile";
+import AcknowledgeBox from "@/components/AcknowledgeBox";
+import { getAdvisories } from "@/lib/cert";
+import { getAnnouncements } from "@/lib/announcements";
+import { ACK_COOKIE } from "@/lib/acknowledgments";
+import { getQuickLinks } from "@/lib/links";
+import { getSettings } from "@/lib/settings";
+import { OFFICE_NAME } from "@/lib/config";
+import { copy } from "@/lib/copy";
+import ui from "@/styles/ui.module.css";
 import styles from "./page.module.css";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+function readConfirmation(
+  value: string | undefined,
+): { name: string; at: string } | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as { name?: unknown; at?: unknown };
+    if (typeof parsed.name === "string" && typeof parsed.at === "string") {
+      return { name: parsed.name, at: parsed.at };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export default async function Home() {
+  const [allAdvisories, announcements, quickLinks, settings, cookieStore] =
+    await Promise.all([
+      getAdvisories(),
+      getAnnouncements(),
+      getQuickLinks(),
+      getSettings(),
+      cookies(),
+    ]);
+
+  const hidden = new Set(settings.hiddenCertCategories);
+  const advisories = allAdvisories.filter(
+    (advisory) => !hidden.has(advisory.category),
+  );
+
+  const confirmation = readConfirmation(cookieStore.get(ACK_COOKIE)?.value);
+
   return (
     <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerText}>
+          <h1 className={styles.title}>{OFFICE_NAME}</h1>
+          <p className={styles.subtitle}>{copy.site.subtitle}</p>
+        </div>
+        <Clock />
+      </header>
+
+      <section
+        className={`${ui.panel} ${styles.linksBar}`}
+        aria-labelledby="links-heading"
+      >
+        <div className={ui.panelHead}>
+          <h2 id="links-heading" className={ui.panelTitle}>
+            {copy.sections.quickLinks}
+          </h2>
+        </div>
+        <div className={styles.linksGrid}>
+          {quickLinks.map((link) => (
+            <LinkTile key={link.id} link={link} />
+          ))}
+        </div>
+      </section>
+
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        <section className={ui.panel} aria-labelledby="cert-heading">
+          <div className={ui.panelHead}>
+            <h2 id="cert-heading" className={ui.panelTitle}>
+              {copy.sections.cert}
+            </h2>
+            <span className={ui.count}>{advisories.length}</span>
+          </div>
+          <div className={ui.panelBody}>
+            {advisories.length === 0 ? (
+              <p className={ui.empty}>{copy.empty.cert}</p>
+            ) : (
+              advisories.map((advisory) => (
+                <CertCard key={advisory.id} advisory={advisory} />
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className={ui.panel} aria-labelledby="ann-heading">
+          <div className={ui.panelHead}>
+            <h2 id="ann-heading" className={ui.panelTitle}>
+              {copy.sections.announcements}
+            </h2>
+          </div>
+          <div className={ui.panelBody}>
+            {announcements.length === 0 ? (
+              <p className={ui.empty}>{copy.empty.announcements}</p>
+            ) : (
+              announcements.map((announcement) => (
+                <AnnouncementCard
+                  key={announcement.id}
+                  announcement={announcement}
+                />
+              ))
+            )}
+          </div>
+        </section>
       </main>
+
+      <section
+        className={`${ui.panel} ${styles.ackPanel}`}
+        aria-labelledby="ack-heading"
+      >
+        <div className={ui.panelHead}>
+          <h2 id="ack-heading" className={ui.panelTitle}>
+            {copy.sections.acknowledge}
+          </h2>
+        </div>
+        <AcknowledgeBox confirmation={confirmation} />
+      </section>
     </div>
   );
 }
