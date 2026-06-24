@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -20,10 +21,29 @@ export async function readJsonFile<T>(filename: string): Promise<T | null> {
   }
 }
 
+async function replaceFile(tmpPath: string, targetPath: string): Promise<void> {
+  try {
+    await fs.rename(tmpPath, targetPath);
+  } catch {
+    await fs.copyFile(tmpPath, targetPath);
+    await fs.unlink(tmpPath);
+  }
+}
+
 export async function writeJsonFile(
   filename: string,
   data: unknown,
 ): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(dataPath(filename), JSON.stringify(data), "utf8");
+  const targetPath = dataPath(filename);
+  const tmpPath = `${targetPath}.${randomUUID()}.tmp`;
+  const content = JSON.stringify(data);
+
+  await fs.writeFile(tmpPath, content, "utf8");
+  try {
+    await replaceFile(tmpPath, targetPath);
+  } catch (error) {
+    await fs.unlink(tmpPath).catch(() => undefined);
+    throw error;
+  }
 }

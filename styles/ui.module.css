@@ -219,6 +219,17 @@
   opacity: 0.9;
 }
 
+.button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.buttonGhost:focus-visible,
+.buttonDanger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .buttonGhost {
   background: transparent;
   color: var(--text);

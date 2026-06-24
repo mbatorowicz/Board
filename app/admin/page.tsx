@@ -8,6 +8,9 @@ import { getSettings } from "@/lib/settings";
 import { getAllowedIps } from "@/lib/allowlist";
 import { getOfficeLogo } from "@/lib/logo";
 import { isAuthed } from "@/lib/admin-auth";
+import { consumeFlash } from "@/lib/flash";
+import { AdminCsrfField } from "@/components/AdminCsrfField";
+import FlashBanner from "@/components/FlashBanner";
 import { HeaderBrandPreview } from "@/components/PageHeader";
 import { copy, withCount } from "@/lib/copy";
 import { formatAdminDateTime, formatIso } from "@/lib/format";
@@ -42,11 +45,9 @@ export default async function AdminPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const hasError = params.error !== undefined;
-  const logoStatus =
-    typeof params.logo === "string" ? params.logo : undefined;
-  const headerStatus =
-    typeof params.header === "string" ? params.header : undefined;
+  const loginError =
+    typeof params.error === "string" ? params.error : undefined;
+  const flash = await consumeFlash();
 
   if (!getAdminPassword()) {
     return (
@@ -67,10 +68,17 @@ export default async function AdminPage({
         <div className={`${ui.surface} ${styles.card}`}>
           <h1 className={styles.title}>{copy.admin.title}</h1>
           <p className={styles.subtitle}>{copy.admin.loginHint}</p>
-          {hasError ? (
+          {loginError === "rate" ? (
+            <p className={ui.error}>{copy.admin.rateLimited}</p>
+          ) : null}
+          {loginError === "csrf" ? (
+            <p className={ui.error}>{copy.admin.csrfFailed}</p>
+          ) : null}
+          {loginError === "1" ? (
             <p className={ui.error}>{copy.admin.wrongPassword}</p>
           ) : null}
           <form action="/api/admin/login" method="POST" className={ui.form}>
+            <AdminCsrfField />
             <label className={ui.label}>
               {copy.labels.password}
               <input
@@ -123,9 +131,12 @@ export default async function AdminPage({
 
   return (
     <main className={styles.page}>
+      <FlashBanner flash={flash} />
+
       <div className={styles.header}>
         <h1 className={styles.title}>{copy.admin.title}</h1>
         <form action="/api/admin/logout" method="POST">
+          <AdminCsrfField />
           <button className={`${ui.button} ${ui.buttonGhost}`} type="submit">
             {copy.actions.logout}
           </button>
@@ -149,13 +160,8 @@ export default async function AdminPage({
         </div>
 
         <h3 className={styles.subheading}>{copy.admin.headerTextForm}</h3>
-        {headerStatus === "ok" ? (
-          <p className={ui.notice}>{copy.admin.headerSaved}</p>
-        ) : null}
-        {headerStatus === "invalid" ? (
-          <p className={ui.error}>{copy.admin.headerInvalid}</p>
-        ) : null}
         <form action={saveHeaderAction} className={ui.form}>
+          <AdminCsrfField />
           <label className={ui.label}>
             {copy.labels.headerTitle}
             <input
@@ -182,17 +188,6 @@ export default async function AdminPage({
 
         <h3 className={styles.subheading}>{copy.admin.logoForm}</h3>
         <p className={ui.notice}>{copy.admin.logoHelp}</p>
-        {logoStatus === "ok" ? (
-          <p className={ui.notice}>Logo zostało zapisane.</p>
-        ) : null}
-        {logoStatus === "removed" ? (
-          <p className={ui.notice}>Logo zostało usunięte.</p>
-        ) : null}
-        {logoStatus === "invalid" ? (
-          <p className={ui.error}>
-            Nie udało się wgrać logo. Dozwolone: PNG, JPG lub WebP, maks. 2 MB.
-          </p>
-        ) : null}
         {!logo ? (
           <p className={ui.emptyPlain}>{copy.admin.logoMissing}</p>
         ) : null}
@@ -201,6 +196,7 @@ export default async function AdminPage({
           className={ui.form}
           encType="multipart/form-data"
         >
+          <AdminCsrfField />
           <label className={ui.label}>
             {copy.labels.logoFile}
             <input
@@ -216,6 +212,7 @@ export default async function AdminPage({
         </form>
         {logo ? (
           <form action={removeLogoAction}>
+            <AdminCsrfField />
             <button
               className={`${ui.button} ${ui.buttonGhost}`}
               type="submit"
@@ -230,10 +227,10 @@ export default async function AdminPage({
         <h2 className={ui.sectionTitle}>{copy.admin.allowlistTitle}</h2>
         <p className={ui.notice}>{copy.admin.allowlistHelp}</p>
         {!allowlistEnforcementEnabled() ? (
-          <p className={ui.warning}>
-            Allowlista IP jest wyłączona (brak TRUST_PROXY=true). Ochrona opiera
-            się na dostępie tylko z sieci urzędu.
-          </p>
+          <p className={ui.warning}>{copy.admin.allowlistProxyRequired}</p>
+        ) : null}
+        {allowedIps.length > 0 && !allowlistEnforcementEnabled() ? (
+          <p className={ui.error}>{copy.admin.allowlistInactive}</p>
         ) : null}
         <p className={ui.notice}>
           {currentIp
@@ -242,6 +239,7 @@ export default async function AdminPage({
         </p>
         <p className={ui.warning}>{copy.admin.allowlistWarning}</p>
         <form action={saveAllowlistAction} className={ui.form}>
+          <AdminCsrfField />
           <label className={ui.label}>
             {copy.labels.allowedIps}
             <textarea
@@ -264,6 +262,7 @@ export default async function AdminPage({
           <p className={ui.emptyPlain}>{copy.empty.certCategories}</p>
         ) : (
           <form action={saveCertCategoriesAction} className={ui.form}>
+            <AdminCsrfField />
             <p className={ui.notice}>{copy.admin.certCategoriesHelp}</p>
             <div className={styles.categoryList}>
               {certCategories.map((category) => (
@@ -289,6 +288,7 @@ export default async function AdminPage({
       <section className={`${ui.surface} ${styles.card}`}>
         <h2 className={ui.sectionTitle}>{copy.admin.addAnnouncement}</h2>
         <form action={createAction} className={ui.form}>
+          <AdminCsrfField />
           <label className={ui.label}>
             {copy.labels.title}
             <input className={ui.input} type="text" name="title" required />
@@ -327,6 +327,7 @@ export default async function AdminPage({
                 </span>
               </div>
               <form action={updateAction} className={ui.form}>
+                <AdminCsrfField />
                 <input type="hidden" name="id" value={announcement.id} />
                 <label className={ui.label}>
                   {copy.labels.title}
@@ -361,6 +362,7 @@ export default async function AdminPage({
                 </button>
               </form>
               <form action={deleteAction} className={ui.deleteForm}>
+                <AdminCsrfField />
                 <input type="hidden" name="id" value={announcement.id} />
                 <button
                   className={`${ui.button} ${ui.buttonDanger}`}
@@ -377,6 +379,7 @@ export default async function AdminPage({
       <section className={`${ui.surface} ${styles.card}`}>
         <h2 className={ui.sectionTitle}>{copy.admin.addLink}</h2>
         <form action={createLinkAction} className={ui.form}>
+          <AdminCsrfField />
           <label className={ui.label}>
             {copy.labels.linkName}
             <input className={ui.input} type="text" name="label" required />
@@ -411,6 +414,7 @@ export default async function AdminPage({
           links.map((link) => (
             <article key={link.id} className={`${ui.surface} ${styles.card}`}>
               <form action={updateLinkAction} className={ui.form}>
+                <AdminCsrfField />
                 <input type="hidden" name="id" value={link.id} />
                 <label className={ui.label}>
                   {copy.labels.linkName}
@@ -446,6 +450,7 @@ export default async function AdminPage({
                 </button>
               </form>
               <form action={deleteLinkAction} className={ui.deleteForm}>
+                <AdminCsrfField />
                 <input type="hidden" name="id" value={link.id} />
                 <button
                   className={`${ui.button} ${ui.buttonDanger}`}
@@ -466,6 +471,7 @@ export default async function AdminPage({
           </h2>
           {acknowledgments.length > 0 ? (
             <form action={clearAcknowledgmentsAction}>
+              <AdminCsrfField />
               <button
                 className={`${ui.button} ${ui.buttonGhost}`}
                 type="submit"

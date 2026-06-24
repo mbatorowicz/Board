@@ -26,10 +26,10 @@ export async function getAcknowledgments(): Promise<Acknowledgment[]> {
 
 export async function addAcknowledgment(
   input: AcknowledgmentInput,
-): Promise<void> {
+): Promise<boolean> {
   const list = await readList();
   if (list.length >= LIMITS.maxAcknowledgments) {
-    return;
+    return false;
   }
   const acknowledgment: Acknowledgment = {
     id: crypto.randomUUID(),
@@ -38,6 +38,7 @@ export async function addAcknowledgment(
     ...(input.ip ? { ip: input.ip } : {}),
   };
   await writeList([acknowledgment, ...list]);
+  return true;
 }
 
 export async function clearAcknowledgments(): Promise<void> {

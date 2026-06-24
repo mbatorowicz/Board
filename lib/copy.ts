@@ -60,6 +60,14 @@ export const copy = {
     notConfigured:
       "Panel nie jest skonfigurowany. Ustaw zmienną środowiskową ADMIN_PASSWORD.",
     wrongPassword: "Nieprawidłowe hasło. Spróbuj ponownie.",
+    rateLimited: "Zbyt wiele prób logowania. Spróbuj ponownie za chwilę.",
+    csrfFailed: "Sesja wygasła lub żądanie jest nieprawidłowe. Odśwież stronę i spróbuj ponownie.",
+    unauthorized: "Brak autoryzacji. Zaloguj się ponownie.",
+    allowlistInactive:
+      "Zapisano listę IP, ale ochrona jest wyłączona — ustaw TRUST_PROXY=true za reverse proxy (nginx), inaczej lista nie blokuje ruchu.",
+    allowlistSaved: "Allowlista IP została zapisana.",
+    allowlistProxyRequired:
+      "Allowlista IP wymaga TRUST_PROXY=true oraz reverse proxy ustawiającego X-Real-IP od klienta (nie od przeglądarki).",
     allowlistTitle: "Allowlista IP",
     allowlistHelp:
       "Jeden adres IPv4 lub zakres CIDR w wierszu (np. 192.168.1.10 lub 192.168.1.0/24). Puste pole — brak ograniczeń. Allowlista działa tylko przy TRUST_PROXY=true i reverse proxy ustawiającym X-Real-IP.",
@@ -84,12 +92,29 @@ export const copy = {
     logoMissing: "Brak wgranego logo.",
     headerSaved: "Nagłówek został zapisany.",
     headerInvalid: "Tytuł nagłówka nie może być pusty.",
+    logoSaved: "Logo zostało zapisane.",
+    logoRemoved: "Logo zostało usunięte.",
+    logoInvalid:
+      "Nie udało się wgrać logo. Dozwolone: PNG, JPG lub WebP, maks. 2 MB.",
+    announcementAdded: "Ogłoszenie zostało dodane.",
+    announcementUpdated: "Ogłoszenie zostało zapisane.",
+    announcementDeleted: "Ogłoszenie zostało usunięte.",
+    announcementInvalid: "Tytuł i treść ogłoszenia są wymagane.",
+    linkAdded: "Link został dodany.",
+    linkUpdated: "Link został zapisany.",
+    linkDeleted: "Link został usunięty.",
+    linkInvalid: "Podaj nazwę i poprawny adres URL (https://).",
+    certCategoriesSaved: "Ustawienia kategorii CERT zostały zapisane.",
+    acknowledgmentsCleared: "Rejestr potwierdzeń został wyczyszczony.",
   },
   acknowledge: {
     intro:
       "Potwierdzam zapoznanie z ostrzeżeniami CERT oraz treścią strony głównej.",
     thanks: (name: string) => `Dziękujemy, ${name}.`,
     confirmedAt: (date: string) => `Potwierdzenie zapisane: ${date}.`,
+    invalidName: "Podaj imię i nazwisko (min. 1 znak).",
+    rateLimited: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+    saveFailed: "Nie udało się zapisać potwierdzenia. Spróbuj ponownie.",
   },
   access: {
     forbiddenTitle: "Dostęp ograniczony",

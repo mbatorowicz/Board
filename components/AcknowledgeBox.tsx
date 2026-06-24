@@ -1,13 +1,17 @@
 import { acknowledgeAction } from "@/app/acknowledge";
 import { copy } from "@/lib/copy";
 import { formatDateTimeLong, formatIso } from "@/lib/format";
+import type { FlashMessage } from "@/lib/flash";
+import FlashBanner from "@/components/FlashBanner";
 import ui from "@/styles/ui.module.css";
 import styles from "./components.module.css";
 
 export default function AcknowledgeBox({
   confirmation,
+  flash,
 }: {
   confirmation: { name: string; at: string } | null;
+  flash: FlashMessage | null;
 }) {
   if (confirmation) {
     return (
@@ -31,16 +35,20 @@ export default function AcknowledgeBox({
 
   return (
     <form action={acknowledgeAction} className={styles.ackForm}>
+      <FlashBanner flash={flash} />
       <p className={styles.ackIntro}>{copy.acknowledge.intro}</p>
       <div className={styles.ackRow}>
-        <input
-          className={`${ui.input} ${styles.ackInput}`}
-          type="text"
-          name="name"
-          placeholder={copy.labels.fullName}
-          autoComplete="name"
-          required
-        />
+        <label className={styles.ackLabel} htmlFor="ack-name">
+          {copy.labels.fullName}
+          <input
+            id="ack-name"
+            className={`${ui.input} ${styles.ackInput}`}
+            type="text"
+            name="name"
+            autoComplete="name"
+            required
+          />
+        </label>
         <button className={ui.button} type="submit">
           {copy.actions.acknowledge}
         </button>

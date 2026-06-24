@@ -371,11 +371,22 @@
 .ackRow {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: 10px;
 }
 
-.ackInput {
+.ackLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   flex: 1 1 220px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.ackInput {
+  width: 100%;
 }
 
 .ackConfirmed {

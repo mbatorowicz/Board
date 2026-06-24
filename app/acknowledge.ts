@@ -3,6 +3,8 @@
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { ACK_COOKIE, addAcknowledgment } from "@/lib/acknowledgments";
+import { copy } from "@/lib/copy";
+import { setFlash } from "@/lib/flash";
 import { getClientIpFromHeaders } from "@/lib/security/client-ip";
 import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { RATE_LIMITS } from "@/lib/security/limits";
@@ -20,17 +22,25 @@ export async function acknowledgeAction(formData: FormData): Promise<void> {
       RATE_LIMITS.acknowledge.windowMs,
     )
   ) {
+    await setFlash({ kind: "error", message: copy.acknowledge.rateLimited });
+    revalidatePath("/");
     return;
   }
 
   const name = validateAcknowledgmentName(String(formData.get("name") ?? ""));
   if (!name) {
+    await setFlash({ kind: "error", message: copy.acknowledge.invalidName });
+    revalidatePath("/");
     return;
   }
 
   const createdAt = new Date().toISOString();
-
-  await addAcknowledgment({ name, ip: ip ?? undefined });
+  const saved = await addAcknowledgment({ name, ip: ip ?? undefined });
+  if (!saved) {
+    await setFlash({ kind: "error", message: copy.acknowledge.saveFailed });
+    revalidatePath("/");
+    return;
+  }
 
   const cookieStore = await cookies();
   cookieStore.set(ACK_COOKIE, JSON.stringify({ name, at: createdAt }), {

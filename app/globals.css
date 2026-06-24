@@ -47,6 +47,7 @@ body {
 }
 
 body {
+  position: relative;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;

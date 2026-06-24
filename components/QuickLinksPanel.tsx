@@ -118,6 +118,7 @@ function PersonalLinkModal({
     <dialog
       ref={dialogRef}
       className={styles.personalLinkModal}
+      aria-labelledby="personal-link-modal-title"
       onClose={handleClose}
       onCancel={(event) => {
         event.preventDefault();
@@ -126,7 +127,9 @@ function PersonalLinkModal({
     >
       <form className={styles.personalLinkModalInner} onSubmit={handleSubmit}>
         <div className={styles.personalLinkModalHead}>
-          <h3 className={styles.personalLinksTitle}>{copy.personalLinks.add}</h3>
+          <h3 id="personal-link-modal-title" className={styles.personalLinksTitle}>
+            {copy.personalLinks.add}
+          </h3>
           <button
             type="button"
             className={styles.personalLinkModalClose}

@@ -21,4 +21,7 @@ export const SESSION_TTL_SECONDS = 60 * 60 * 8;
 export const RATE_LIMITS = {
   login: { max: 5, windowMs: 15 * 60 * 1000 },
   acknowledge: { max: 10, windowMs: 60 * 60 * 1000 },
+  linkThumb: { max: 30, windowMs: 60 * 1000 },
 } as const;
+
+export const ADMIN_PASSWORD_MAX = 256;

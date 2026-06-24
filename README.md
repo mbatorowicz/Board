@@ -25,7 +25,8 @@ Skopiuj `.env.example` do `.env` (Docker / QNAP) lub `.env.local` (development):
 | `ALLOWED_IPS` | Opcjonalna allowlista IP, kilka po przecinku. Obsługuje CIDR, np. `192.168.1.0/24`. Puste = brak ograniczeń w `proxy.ts`. Na QNAP w LAN często wystarczy puste pole — strona i tak jest dostępna tylko w sieci urzędu. |
 | `CERT_FEED_URL` | Adres kanału RSS CERT (domyślnie kanał CERT Polska). |
 | `FEED_REVALIDATE_SECONDS` | Co ile sekund odświeżać dane CERT (domyślnie 1200 = 20 min). |
-| `TRUST_PROXY` | Ustaw `true` za reverse proxy (nginx) z `X-Real-IP`. Wymagane, aby allowlista IP działała; bez tego ochrona opiera się na izolacji LAN. |
+| `TRUST_PROXY` | Ustaw `true` **tylko** za zaufanym reverse proxy (nginx), który **nadpisuje** `X-Real-IP` adresem klienta. Bez tego allowlista IP w panelu **nie blokuje** ruchu — ochrona opiera się wyłącznie na izolacji LAN. |
+| `COOKIE_SECURE` | Ustaw `true` przy HTTPS (reverse proxy z TLS). Wymagane dla flagi `Secure` na ciasteczkach sesji. |
 
 Wszystkie dane aplikacji (ogłoszenia, potwierdzenia, linki, ustawienia, allowlista) zapisują się w plikach JSON w katalogu `.data/`.
 
@@ -33,10 +34,11 @@ Wszystkie dane aplikacji (ogłoszenia, potwierdzenia, linki, ustawienia, allowli
 
 - Panel `/admin` nie jest linkowany ze strony głównej — wejście tylko bezpośrednim adresem.
 - Sesja admina: losowy token (8 h), `httpOnly`, `sameSite=strict`.
-- Rate limiting logowania i potwierdzeń zapoznania (per IP, gdy `TRUST_PROXY=true`).
+- Logowanie i wylogowanie: token CSRF w formularzu + weryfikacja po stronie serwera.
+- Rate limiting logowania (5 prób / 15 min) i miniaturek linków (30/min) oraz potwierdzeń zapoznania (per IP, gdy `TRUST_PROXY=true`).
 - Linki i feed CERT: tylko `https://` (w dev także `http://`).
 - Nagłówki CSP, `X-Frame-Options`, `nosniff` — w `next.config.ts`.
-- Allowlista IP: nie ufamy nagłówkom od klienta; wymaga `TRUST_PROXY=true` i poprawnej konfiguracji reverse proxy.
+- Allowlista IP: wymaga `TRUST_PROXY=true` i reverse proxy ustawiającego `X-Real-IP` — **nie** ufaj nagłówkom wysłanym przez przeglądarkę. Panel admina ostrzega, gdy lista IP jest zapisana, ale ochrona wyłączona.
 - Regularnie rób backup katalogu `data/` / `.data/`.
 
 ## Uruchomienie lokalne (development)

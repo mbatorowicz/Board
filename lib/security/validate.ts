@@ -48,6 +48,26 @@ function isPrivateIpv4(hostname: string): boolean {
   return false;
 }
 
+function isBlockedLiteralIpv6(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  if (!lower.includes(":")) {
+    return false;
+  }
+  if (lower === "::1" || lower === "::") {
+    return true;
+  }
+  if (lower.startsWith("fe80:")) {
+    return true;
+  }
+  if (lower.startsWith("fc") || lower.startsWith("fd")) {
+    return true;
+  }
+  if (lower.startsWith("::ffff:")) {
+    return isPrivateIpv4(lower.slice(7));
+  }
+  return false;
+}
+
 export function isSafeThumbTarget(url: string): boolean {
   if (!isSafeHttpUrl(url)) {
     return false;
@@ -65,6 +85,9 @@ export function isSafeThumbTarget(url: string): boolean {
       return false;
     }
     if (isPrivateIpv4(hostname)) {
+      return false;
+    }
+    if (isBlockedLiteralIpv6(hostname)) {
       return false;
     }
     return true;

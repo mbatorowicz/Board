@@ -1,5 +1,5 @@
 import { LIMITS } from "@/lib/security/limits";
-import { isSafeThumbTarget } from "@/lib/security/validate";
+import { isSafeThumbTargetResolved } from "@/lib/security/thumb-target";
 import type { ThumbSource } from "@/lib/link-thumb-cache";
 
 const FETCH_TIMEOUT_MS = 5_000;
@@ -102,7 +102,7 @@ async function fetchWithRedirects(
   let current = url;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    if (!isSafeThumbTarget(current)) {
+    if (!(await isSafeThumbTargetResolved(current))) {
       return null;
     }
 
@@ -164,16 +164,22 @@ async function fetchImage(url: string): Promise<FetchedImage | null> {
   return { buffer, mime };
 }
 
-function resolveMetaUrl(baseUrl: string, raw: string): string | null {
+async function resolveMetaUrl(
+  baseUrl: string,
+  raw: string,
+): Promise<string | null> {
   try {
     const resolved = new URL(raw.trim(), baseUrl).toString();
-    return isSafeThumbTarget(resolved) ? resolved : null;
+    return (await isSafeThumbTargetResolved(resolved)) ? resolved : null;
   } catch {
     return null;
   }
 }
 
-function extractMetaImageUrls(html: string, pageUrl: string): string[] {
+async function extractMetaImageUrls(
+  html: string,
+  pageUrl: string,
+): Promise<string[]> {
   const candidates: string[] = [];
 
   const patterns = [
@@ -185,7 +191,7 @@ function extractMetaImageUrls(html: string, pageUrl: string): string[] {
 
   for (const pattern of patterns) {
     for (const match of html.matchAll(pattern)) {
-      const resolved = resolveMetaUrl(pageUrl, match[1] ?? "");
+      const resolved = await resolveMetaUrl(pageUrl, match[1] ?? "");
       if (resolved) {
         candidates.push(resolved);
       }
@@ -241,7 +247,7 @@ async function resolveFromOgImage(pageUrl: string): Promise<FetchedImage | null>
     return null;
   }
 
-  const candidates = extractMetaImageUrls(html, pageUrl);
+  const candidates = await extractMetaImageUrls(html, pageUrl);
   for (const candidate of candidates) {
     const image = await fetchImage(candidate);
     if (image) {

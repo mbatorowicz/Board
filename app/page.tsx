@@ -10,6 +10,7 @@ import { ACK_COOKIE } from "@/lib/acknowledgments";
 import { getQuickLinks } from "@/lib/links";
 import { getSettings } from "@/lib/settings";
 import { getOfficeLogo } from "@/lib/logo";
+import { consumeFlash } from "@/lib/flash";
 import { copy } from "@/lib/copy";
 import ui from "@/styles/ui.module.css";
 import styles from "./page.module.css";
@@ -48,9 +49,10 @@ export default async function Home() {
   );
 
   const confirmation = readConfirmation(cookieStore.get(ACK_COOKIE)?.value);
+  const flash = await consumeFlash();
 
   return (
-    <div className={styles.page}>
+    <div id="page-content" className={styles.page}>
       <PageHeader
         logo={logo}
         title={settings.headerTitle}
@@ -118,7 +120,7 @@ export default async function Home() {
             {copy.sections.acknowledge}
           </h2>
         </div>
-        <AcknowledgeBox confirmation={confirmation} />
+        <AcknowledgeBox confirmation={confirmation} flash={flash} />
       </section>
     </div>
   );

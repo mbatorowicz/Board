@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import SkipLink from "@/components/SkipLink";
 import { copy } from "@/lib/copy";
 import { getSettings } from "@/lib/settings";
 import { themeInitScript } from "@/lib/theme";
@@ -40,6 +41,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
       </head>
       <body>
+        <SkipLink />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
