@@ -9,6 +9,8 @@ export const LIMITS = {
   maxAcknowledgments: 5_000,
   certFeedMaxBytes: 5_000_000,
   logoMaxBytes: 2_000_000,
+  linkThumbMaxBytes: 2_000_000,
+  linkThumbHtmlMaxBytes: 512_000,
   headerTitle: 120,
   headerSubtitle: 200,
   personalLinksMax: 30,

@@ -27,6 +27,52 @@ const IPV4 = `${IPV4_PART}(?:\\.${IPV4_PART}){3}`;
 const IPV4_CIDR = new RegExp(`^${IPV4}\\/(?:[0-9]|[1-2]\\d|3[0-2])$`);
 const IPV4_EXACT = new RegExp(`^${IPV4}$`);
 
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "[::1]",
+  "::1",
+]);
+
+function isPrivateIpv4(hostname: string): boolean {
+  if (!IPV4_EXACT.test(hostname)) {
+    return false;
+  }
+  const parts = hostname.split(".").map(Number);
+  if (parts[0] === 10) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  if (parts[0] === 127) return true;
+  return false;
+}
+
+export function isSafeThumbTarget(url: string): boolean {
+  if (!isSafeHttpUrl(url)) {
+    return false;
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.username || parsed.password) {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    if (BLOCKED_HOSTNAMES.has(hostname)) {
+      return false;
+    }
+    if (hostname.endsWith(".local") || hostname.endsWith(".internal")) {
+      return false;
+    }
+    if (isPrivateIpv4(hostname)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function isValidAllowlistRule(rule: string): boolean {
   return IPV4_EXACT.test(rule) || IPV4_CIDR.test(rule);
 }

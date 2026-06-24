@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { QuickLink } from "@/lib/types";
 import { copy } from "@/lib/copy";
 import { LIMITS } from "@/lib/security/limits";
@@ -38,17 +38,61 @@ function PersonalLinkRow({
   );
 }
 
-function PersonalLinkForm({
+function AddPersonalLinkTile({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={styles.addLinkTile}
+      onClick={onClick}
+      aria-label={copy.personalLinks.add}
+    >
+      <span className={styles.addLinkTileIcon} aria-hidden="true">
+        +
+      </span>
+      <span className={styles.addLinkTileLabel}>{copy.personalLinks.add}</span>
+    </button>
+  );
+}
+
+function PersonalLinkModal({
+  open,
   links,
+  onClose,
   onLinksChange,
 }: {
+  open: boolean;
   links: QuickLink[];
+  onClose: () => void;
   onLinksChange: (next: QuickLink[]) => void;
 }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+
+  function resetForm(): void {
+    setError(null);
+    setLabel("");
+    setUrl("");
+    setDescription("");
+  }
+
+  function handleClose(): void {
+    resetForm();
+    onClose();
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -67,56 +111,84 @@ function PersonalLinkForm({
 
     savePersonalLinks(result.links);
     onLinksChange(result.links);
-    setLabel("");
-    setUrl("");
-    setDescription("");
+    handleClose();
   }
 
   return (
-    <form
-      className={`${ui.form} ${styles.personalLinksForm}`}
-      onSubmit={handleSubmit}
+    <dialog
+      ref={dialogRef}
+      className={styles.personalLinkModal}
+      onClose={handleClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        handleClose();
+      }}
     >
-      <h3 className={styles.personalLinksTitle}>{copy.personalLinks.add}</h3>
-      {error ? <p className={ui.error}>{error}</p> : null}
-      <label className={ui.label}>
-        {copy.labels.linkName}
-        <input
-          className={ui.input}
-          name="label"
-          value={label}
-          onChange={(event) => setLabel(event.target.value)}
-          maxLength={LIMITS.linkLabel}
-          required
-        />
-      </label>
-      <label className={ui.label}>
-        {copy.labels.linkUrl}
-        <input
-          className={ui.input}
-          name="url"
-          type="url"
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://..."
-          maxLength={LIMITS.url}
-          required
-        />
-      </label>
-      <label className={ui.label}>
-        {copy.labels.linkDescription}
-        <input
-          className={ui.input}
-          name="description"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          maxLength={LIMITS.linkDescription}
-        />
-      </label>
-      <button type="submit" className={ui.button}>
-        {copy.personalLinks.add}
-      </button>
-    </form>
+      <form className={styles.personalLinkModalInner} onSubmit={handleSubmit}>
+        <div className={styles.personalLinkModalHead}>
+          <h3 className={styles.personalLinksTitle}>{copy.personalLinks.add}</h3>
+          <button
+            type="button"
+            className={styles.personalLinkModalClose}
+            onClick={handleClose}
+            aria-label="Zamknij"
+          >
+            ×
+          </button>
+        </div>
+
+        {error ? <p className={ui.error}>{error}</p> : null}
+
+        <label className={ui.label}>
+          {copy.labels.linkName}
+          <input
+            className={ui.input}
+            name="label"
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            maxLength={LIMITS.linkLabel}
+            required
+            autoFocus
+          />
+        </label>
+        <label className={ui.label}>
+          {copy.labels.linkUrl}
+          <input
+            className={ui.input}
+            name="url"
+            type="url"
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="https://..."
+            maxLength={LIMITS.url}
+            required
+          />
+        </label>
+        <label className={ui.label}>
+          {copy.labels.linkDescription}
+          <input
+            className={ui.input}
+            name="description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            maxLength={LIMITS.linkDescription}
+          />
+        </label>
+
+        <div className={styles.personalLinkModalActions}>
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonGhost}`}
+            onClick={handleClose}
+          >
+            Anuluj
+          </button>
+          <button type="submit" className={ui.button}>
+            {copy.personalLinks.add}
+          </button>
+        </div>
+      </form>
+    </dialog>
   );
 }
 
@@ -127,6 +199,7 @@ export default function QuickLinksPanel({
 }) {
   const [personalLinks, setPersonalLinks] = useState<QuickLink[]>([]);
   const [ready, setReady] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     setPersonalLinks(loadPersonalLinks());
@@ -138,6 +211,8 @@ export default function QuickLinksPanel({
     setPersonalLinks(next);
     savePersonalLinks(next);
   }
+
+  const canAddMore = personalLinks.length < LIMITS.personalLinksMax;
 
   return (
     <>
@@ -151,7 +226,7 @@ export default function QuickLinksPanel({
         <p className={ui.empty}>{copy.empty.links}</p>
       )}
 
-      {ready && personalLinks.length > 0 ? (
+      {ready ? (
         <div className={styles.personalLinksBlock}>
           <h3 className={styles.personalLinksTitle}>{copy.personalLinks.title}</h3>
           <div className={styles.linksGrid}>
@@ -162,11 +237,19 @@ export default function QuickLinksPanel({
                 onRemove={handleRemove}
               />
             ))}
+            {canAddMore ? (
+              <AddPersonalLinkTile onClick={() => setModalOpen(true)} />
+            ) : null}
           </div>
         </div>
       ) : null}
 
-      <PersonalLinkForm links={personalLinks} onLinksChange={setPersonalLinks} />
+      <PersonalLinkModal
+        open={modalOpen}
+        links={personalLinks}
+        onClose={() => setModalOpen(false)}
+        onLinksChange={setPersonalLinks}
+      />
     </>
   );
 }

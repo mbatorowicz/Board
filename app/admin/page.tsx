@@ -7,6 +7,7 @@ import { getQuickLinks } from "@/lib/links";
 import { getSettings } from "@/lib/settings";
 import { getAllowedIps } from "@/lib/allowlist";
 import { getOfficeLogo } from "@/lib/logo";
+import { isAuthed } from "@/lib/admin-auth";
 import { HeaderBrandPreview } from "@/components/PageHeader";
 import { copy, withCount } from "@/lib/copy";
 import { formatAdminDateTime, formatIso } from "@/lib/format";
@@ -21,9 +22,6 @@ import {
   createLinkAction,
   deleteAction,
   deleteLinkAction,
-  isAuthed,
-  loginAction,
-  logoutAction,
   removeLogoAction,
   saveAllowlistAction,
   saveHeaderAction,
@@ -72,7 +70,7 @@ export default async function AdminPage({
           {hasError ? (
             <p className={ui.error}>{copy.admin.wrongPassword}</p>
           ) : null}
-          <form action={loginAction} className={ui.form}>
+          <form action="/api/admin/login" method="POST" className={ui.form}>
             <label className={ui.label}>
               {copy.labels.password}
               <input
@@ -127,7 +125,7 @@ export default async function AdminPage({
     <main className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{copy.admin.title}</h1>
-        <form action={logoutAction}>
+        <form action="/api/admin/logout" method="POST">
           <button className={`${ui.button} ${ui.buttonGhost}`} type="submit">
             {copy.actions.logout}
           </button>

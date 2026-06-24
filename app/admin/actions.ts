@@ -1,9 +1,6 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getAdminPassword } from "@/lib/config";
 import {
   addAnnouncement,
   deleteAnnouncement,
@@ -18,38 +15,13 @@ import {
 import { getSettings, saveSettings } from "@/lib/settings";
 import { saveAllowedIps } from "@/lib/allowlist";
 import { removeOfficeLogo, saveOfficeLogo } from "@/lib/logo";
-import {
-  createAdminSessionToken,
-  revokeAdminSessionToken,
-  verifyAdminSessionToken,
-} from "@/lib/security/admin-session";
-import { getClientIpFromHeaders } from "@/lib/security/client-ip";
-import { safeEqualString } from "@/lib/security/password";
-import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
-import { RATE_LIMITS, SESSION_TTL_SECONDS } from "@/lib/security/limits";
+import { requireAuth } from "@/lib/admin-auth";
 import {
   parseAllowlistInput,
   validateAnnouncementInput,
   validateHeaderInput,
   validateLinkInput,
 } from "@/lib/security/validate";
-import { cookieSecure } from "@/lib/cookie-secure";
-
-const COOKIE_NAME = "admin_session";
-
-export async function isAuthed(): Promise<boolean> {
-  if (!getAdminPassword()) {
-    return false;
-  }
-  const cookieStore = await cookies();
-  return verifyAdminSessionToken(cookieStore.get(COOKIE_NAME)?.value);
-}
-
-async function requireAuth(): Promise<void> {
-  if (!(await isAuthed())) {
-    redirect("/admin");
-  }
-}
 
 function toAnnouncementInput(formData: FormData) {
   return validateAnnouncementInput({
@@ -67,48 +39,8 @@ function toLinkInput(formData: FormData) {
   });
 }
 
-export async function loginAction(formData: FormData): Promise<void> {
-  const password = getAdminPassword();
-  const provided = String(formData.get("password") ?? "");
-  const headerList = await headers();
-  const ip = getClientIpFromHeaders(headerList);
-
-  if (
-    !checkRateLimit(
-      rateLimitKey("login", ip),
-      RATE_LIMITS.login.max,
-      RATE_LIMITS.login.windowMs,
-    )
-  ) {
-    redirect("/admin?error=1");
-  }
-
-  if (!password || !safeEqualString(provided, password)) {
-    redirect("/admin?error=1");
-  }
-
-  const token = await createAdminSessionToken();
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: cookieSecure(),
-    path: "/",
-    maxAge: SESSION_TTL_SECONDS,
-  });
-
-  redirect("/admin");
-}
-
-export async function logoutAction(): Promise<void> {
-  const cookieStore = await cookies();
-  await revokeAdminSessionToken(cookieStore.get(COOKIE_NAME)?.value);
-  cookieStore.delete(COOKIE_NAME);
-  redirect("/admin");
-}
-
 export async function createAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const input = toAnnouncementInput(formData);
   if (!input) {
     return;
@@ -123,7 +55,7 @@ export async function createAction(formData: FormData): Promise<void> {
 }
 
 export async function updateAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const id = String(formData.get("id") ?? "").trim();
   const input = toAnnouncementInput(formData);
   if (id && input) {
@@ -138,7 +70,7 @@ export async function updateAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const id = String(formData.get("id") ?? "").trim();
   if (id) {
     await deleteAnnouncement(id);
@@ -148,7 +80,7 @@ export async function deleteAction(formData: FormData): Promise<void> {
 }
 
 export async function clearAcknowledgmentsAction(): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   await clearAcknowledgments();
   revalidatePath("/admin");
 }
@@ -156,7 +88,7 @@ export async function clearAcknowledgmentsAction(): Promise<void> {
 export async function saveCertCategoriesAction(
   formData: FormData,
 ): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const all = formData.getAll("category").map(String);
   const visible = new Set(formData.getAll("visible").map(String));
   const hiddenCertCategories = all.filter((category) => !visible.has(category));
@@ -167,7 +99,7 @@ export async function saveCertCategoriesAction(
 }
 
 export async function createLinkAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const input = toLinkInput(formData);
   if (input) {
     await addQuickLink(input);
@@ -177,7 +109,7 @@ export async function createLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function updateLinkAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const id = String(formData.get("id") ?? "").trim();
   const input = toLinkInput(formData);
   if (id && input) {
@@ -188,7 +120,7 @@ export async function updateLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteLinkAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const id = String(formData.get("id") ?? "").trim();
   if (id) {
     await deleteQuickLink(id);
@@ -198,54 +130,51 @@ export async function deleteLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function saveAllowlistAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const raw = String(formData.get("ips") ?? "");
   await saveAllowedIps(parseAllowlistInput(raw));
   revalidatePath("/admin");
 }
 
 export async function saveHeaderAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const input = validateHeaderInput({
     headerTitle: String(formData.get("headerTitle") ?? ""),
     headerSubtitle: String(formData.get("headerSubtitle") ?? ""),
   });
 
   if (!input) {
-    redirect("/admin?header=invalid");
+    return;
   }
 
   const settings = await getSettings();
   await saveSettings({ ...settings, ...input });
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?header=ok");
 }
 
 export async function uploadLogoAction(formData: FormData): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   const file = formData.get("logo");
 
   if (!(file instanceof File) || file.size === 0) {
-    redirect("/admin?logo=invalid");
+    return;
   }
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     await saveOfficeLogo(buffer);
   } catch {
-    redirect("/admin?logo=invalid");
+    return;
   }
 
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?logo=ok");
 }
 
 export async function removeLogoAction(): Promise<void> {
-  await requireAuth();
+  if (!(await requireAuth())) return;
   await removeOfficeLogo();
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?logo=removed");
 }

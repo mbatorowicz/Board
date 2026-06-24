@@ -47,10 +47,13 @@
 }
 
 .linkTile {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
+  justify-content: flex-end;
+  min-height: 120px;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
@@ -60,9 +63,41 @@
     box-shadow 0.15s ease;
 }
 
+.linkTileMedia {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.linkTileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.linkTileOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.35) 45%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+}
+
+.linkTileBody {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+}
+
 .linksGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
@@ -84,14 +119,26 @@
   color: var(--text);
 }
 
+.linkTileBody .linkLabel {
+  color: #fff;
+}
+
 .linkArrow {
   color: var(--accent);
   font-size: 0.95rem;
 }
 
+.linkTileBody .linkArrow {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .linkDescription {
   font-size: 0.82rem;
   color: var(--text-muted);
+}
+
+.linkTileBody .linkDescription {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .themeToggle {
@@ -139,10 +186,120 @@
   color: var(--text-muted);
 }
 
-.personalLinksForm {
-  padding-top: 16px;
-  margin-top: 4px;
-  border-top: 1px dashed var(--border);
+.addLinkTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 88px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .addLinkTile:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--shadow);
+  }
+}
+
+.addLinkTileIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.addLinkTileLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.personalLinkModal {
+  width: min(100% - 2rem, 420px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.personalLinkModal::backdrop {
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.personalLinkModalInner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.personalLinkModalHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.personalLinkModalHead .personalLinksTitle {
+  padding-right: 0.5rem;
+}
+
+.personalLinkModalClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .personalLinkModalClose:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+}
+
+.personalLinkModalActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
 }
 
 .personalLinkWrap {
