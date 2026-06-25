@@ -67,14 +67,31 @@ Standardowy `docker-compose.yml` używa `env_file: .env` — **Container Station
 
 Użyj pliku **`docker-compose.qnap.yml`**:
 
-1. Skopiuj cały projekt do `/share/Container/Board/` (File Station).
-2. Utwórz pusty folder `data/` obok plików projektu (jeśli nie ma).
-3. W **Container Station → Create → Create Application**:
+1. W **File Station** utwórz folder **`/Container/Board`**.
+2. Skopiuj **zawartość** repozytorium **bezpośrednio** do tego folderu (nie do podfolderu typu `HomePage/`).
+3. Struktura na NAS musi wyglądać tak:
+
+```
+/Container/Board/
+├── Dockerfile              ← wymagany w tym katalogu
+├── docker-compose.qnap.yml
+├── package.json
+├── package-lock.json
+├── next.config.ts
+├── app/
+├── components/
+├── lib/
+├── public/
+├── proxy.ts
+└── data/                   ← dane aplikacji (zachowaj przy aktualizacji)
+```
+
+4. **Nie wgrywaj:** `node_modules/`, `.next/`, `.git/`.
+5. W **Container Station → Create → Create Application**:
    - **Name:** `board` (nie „docker-compose”)
-   - Wklej treść `docker-compose.qnap.yml`
+   - Wklej treść `docker-compose.qnap.yml` (ścieżki: `/Container/Board`)
    - W sekcji `environment` ustaw **`ADMIN_PASSWORD`** (silne hasło)
-   - Jeśli folder jest poza `/share/Container/Board`, popraw ścieżki `context` i `volumes`
-4. **Create** — pierwszy build może potrwać 10–20 min.
+6. **Create** — pierwszy build może potrwać 10–20 min.
 
 Alternatywa: w YAML usuń blok `environment` i dodaj zmienne w **Advanced Settings → Environment** w Container Station.
 
@@ -107,7 +124,7 @@ tar -czf backup-homepage-$(date +%Y%m%d).tar.gz data/
 
 ### 5. Aktualizacja
 
-**Skopiowanie plików na NAS nie wystarczy** — kontener działa ze **zbuilowanego obrazu**. Po podmianie kodu w `/share/Container/Board/` (bez folderu `data/`) w Container Station:
+**Skopiowanie plików na NAS nie wystarczy** — kontener działa ze **zbuilowanego obrazu**. Po podmianie kodu w `/Container/Board/` (bez nadpisywania folderu `data/`) w Container Station:
 
 1. **Applications** → aplikacja `board` → **Stop**
 2. **Actions** → **Rebuild** (lub usuń aplikację i utwórz ponownie z tym samym YAML)

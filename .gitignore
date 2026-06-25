@@ -40,7 +40,8 @@ admin-snippet.txt
 
 # runtime data (dev + Docker volume)
 .data/
-data/
+data/*
+!data/.gitkeep
 
 # typescript
 *.tsbuildinfo
