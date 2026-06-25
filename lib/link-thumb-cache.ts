@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-export type ThumbSource = "og" | "favicon" | "placeholder";
+export type ThumbSource = "og" | "meta-icon" | "icon" | "placeholder";
 
 export type ThumbCacheEntry = {
   url: string;
@@ -14,6 +14,8 @@ export type ThumbCacheEntry = {
 
 const DATA_DIR = path.join(process.cwd(), ".data", "link-thumbs");
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const LEGACY_SOURCES = new Set(["favicon"]);
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/png": "png",
@@ -68,6 +70,10 @@ export async function readThumbCache(
   }
 
   if (Date.now() - entry.fetchedAt > TTL_MS) {
+    return null;
+  }
+
+  if (LEGACY_SOURCES.has(entry.source as string)) {
     return null;
   }
 
