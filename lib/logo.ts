@@ -4,7 +4,7 @@ import { LIMITS } from "@/lib/security/limits";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const LOGO_BASENAME = "office-logo";
-const ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg", "webp"] as const;
+const ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "svg"] as const;
 
 export type LogoExtension = (typeof ALLOWED_EXTENSIONS)[number];
 
@@ -19,7 +19,31 @@ const MIME_BY_EXT: Record<LogoExtension, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
   webp: "image/webp",
+  svg: "image/svg+xml",
 };
+
+function isSafeSvg(buffer: Buffer): boolean {
+  const text = buffer.toString("utf8");
+  if (!/<svg[\s>]/i.test(text)) {
+    return false;
+  }
+  const lower = text.toLowerCase();
+  if (/<script[\s>]/i.test(lower)) {
+    return false;
+  }
+  if (/on\w+\s*=/.test(lower)) {
+    return false;
+  }
+  if (/<foreignobject[\s>]/i.test(lower)) {
+    return false;
+  }
+  return true;
+}
+
+function detectSvg(buffer: Buffer): boolean {
+  const head = buffer.toString("utf8", 0, Math.min(buffer.length, 512)).trim();
+  return head.startsWith("<svg") || (head.startsWith("<?xml") && head.includes("<svg"));
+}
 
 function logoPath(ext: LogoExtension): string {
   return path.join(DATA_DIR, `${LOGO_BASENAME}.${ext}`);
@@ -51,6 +75,10 @@ function detectExtension(buffer: Buffer): LogoExtension | null {
     buffer.toString("ascii", 8, 12) === "WEBP"
   ) {
     return "webp";
+  }
+
+  if (detectSvg(buffer) && isSafeSvg(buffer)) {
+    return "svg";
   }
 
   return null;

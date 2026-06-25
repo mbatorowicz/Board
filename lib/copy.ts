@@ -42,7 +42,7 @@ export const copy = {
   },
   labels: {
     password: "Hasło",
-    logoFile: "Plik logo (PNG, JPG lub WebP, max. 2 MB)",
+    logoFile: "Plik logo (PNG, JPG, WebP lub SVG, max. 2 MB)",
     headerTitle: "Tytuł nagłówka",
     headerSubtitle: "Podtytuł nagłówka",
     title: "Tytuł",
@@ -88,14 +88,14 @@ export const copy = {
     headerTextForm: "Teksty nagłówka",
     logoForm: "Logo",
     logoHelp:
-      "Wyświetlane obok tekstów w nagłówku. Zalecany format poziomy (PNG z przezroczystością lub JPG/WebP).",
+      "Wyświetlane obok tekstów w nagłówku. Zalecany format poziomy (PNG/SVG z przezroczystością, JPG lub WebP).",
     logoMissing: "Brak wgranego logo.",
     headerSaved: "Nagłówek został zapisany.",
     headerInvalid: "Tytuł nagłówka nie może być pusty.",
     logoSaved: "Logo zostało zapisane.",
     logoRemoved: "Logo zostało usunięte.",
     logoInvalid:
-      "Nie udało się wgrać logo. Dozwolone: PNG, JPG lub WebP, maks. 2 MB.",
+      "Nie udało się wgrać logo. Dozwolone: PNG, JPG, WebP lub SVG, maks. 2 MB.",
     announcementAdded: "Ogłoszenie zostało dodane.",
     announcementUpdated: "Ogłoszenie zostało zapisane.",
     announcementDeleted: "Ogłoszenie zostało usunięte.",

@@ -203,7 +203,7 @@ export default async function AdminPage({
               className={styles.fileInput}
               type="file"
               name="logo"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
             />
           </label>
           <button className={ui.button} type="submit">
