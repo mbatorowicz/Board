@@ -272,7 +272,7 @@ async function resolveFromFavicon(pageUrl: string): Promise<FetchedImage | null>
     return direct;
   }
 
-  const googleUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(pageUrl).hostname)}&sz=128`;
+  const googleUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(pageUrl).hostname)}&sz=256`;
   return fetchImage(googleUrl);
 }
 

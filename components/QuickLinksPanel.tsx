@@ -216,34 +216,36 @@ export default function QuickLinksPanel({
   }
 
   const canAddMore = personalLinks.length < LIMITS.personalLinksMax;
+  const isEmpty =
+    ready &&
+    globalLinks.length === 0 &&
+    personalLinks.length === 0 &&
+    !canAddMore;
+  const hasAnyTile =
+    globalLinks.length > 0 ||
+    (ready && (personalLinks.length > 0 || canAddMore));
 
   return (
     <>
-      {globalLinks.length > 0 ? (
+      {isEmpty ? (
+        <p className={ui.empty}>{copy.empty.links}</p>
+      ) : hasAnyTile ? (
         <div className={styles.linksGrid}>
           {globalLinks.map((link) => (
             <LinkTile key={link.id} link={link} />
           ))}
-        </div>
-      ) : (
-        <p className={ui.empty}>{copy.empty.links}</p>
-      )}
-
-      {ready ? (
-        <div className={styles.personalLinksBlock}>
-          <h3 className={styles.personalLinksTitle}>{copy.personalLinks.title}</h3>
-          <div className={styles.linksGrid}>
-            {personalLinks.map((link) => (
-              <PersonalLinkRow
-                key={link.id}
-                link={link}
-                onRemove={handleRemove}
-              />
-            ))}
-            {canAddMore ? (
-              <AddPersonalLinkTile onClick={() => setModalOpen(true)} />
-            ) : null}
-          </div>
+          {ready
+            ? personalLinks.map((link) => (
+                <PersonalLinkRow
+                  key={link.id}
+                  link={link}
+                  onRemove={handleRemove}
+                />
+              ))
+            : null}
+          {ready && canAddMore ? (
+            <AddPersonalLinkTile onClick={() => setModalOpen(true)} />
+          ) : null}
         </div>
       ) : null}
 

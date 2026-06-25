@@ -8,7 +8,7 @@ import { getSettings } from "@/lib/settings";
 import { getAllowedIps } from "@/lib/allowlist";
 import { getOfficeLogo } from "@/lib/logo";
 import { isAuthed } from "@/lib/admin-auth";
-import { consumeFlash } from "@/lib/flash";
+import { readFlash } from "@/lib/flash";
 import { AdminCsrfField } from "@/components/AdminCsrfField";
 import FlashBanner from "@/components/FlashBanner";
 import { HeaderBrandPreview } from "@/components/PageHeader";
@@ -47,7 +47,7 @@ export default async function AdminPage({
   const params = await searchParams;
   const loginError =
     typeof params.error === "string" ? params.error : undefined;
-  const flash = await consumeFlash();
+  const flash = await readFlash();
 
   if (!getAdminPassword()) {
     return (

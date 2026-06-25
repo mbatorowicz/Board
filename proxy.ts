@@ -3,10 +3,13 @@ import type { NextRequest } from "next/server";
 import { getAllowedIps } from "@/lib/allowlist";
 import { copy } from "@/lib/copy";
 import {
+  isAdminPath,
+  nextWithRequestContext,
+} from "@/lib/request-context-middleware";
+import {
   allowlistEnforcementEnabled,
   getClientIpFromRequest,
 } from "@/lib/security/client-ip";
-import { isAdminPath, nextWithAdminCsrf } from "@/lib/security/csrf-middleware";
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
@@ -53,28 +56,25 @@ function forbiddenResponse(): NextResponse {
   });
 }
 
+function allowRequest(request: NextRequest): NextResponse {
+  return nextWithRequestContext(request, isAdminPath(request.nextUrl.pathname));
+}
+
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
   const allowed = await getAllowedIps();
 
   if (allowed.length === 0 || !allowlistEnforcementEnabled()) {
-    return isAdminPath(pathname)
-      ? nextWithAdminCsrf(request)
-      : NextResponse.next();
+    return allowRequest(request);
   }
 
   const ip = getClientIpFromRequest(request);
 
   if (process.env.NODE_ENV !== "production" && isLocal(ip)) {
-    return isAdminPath(pathname)
-      ? nextWithAdminCsrf(request)
-      : NextResponse.next();
+    return allowRequest(request);
   }
 
   if (ip && allowed.some((rule) => matchesRule(ip, rule))) {
-    return isAdminPath(pathname)
-      ? nextWithAdminCsrf(request)
-      : NextResponse.next();
+    return allowRequest(request);
   }
 
   return forbiddenResponse();

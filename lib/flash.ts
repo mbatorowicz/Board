@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { cookieSecure } from "@/lib/cookie-secure";
 
 export type FlashKind = "error" | "notice" | "warning";
@@ -8,27 +8,13 @@ export type FlashMessage = {
   message: string;
 };
 
-const FLASH_COOKIE = "site_flash";
+export const FLASH_COOKIE = "site_flash";
+export const FLASH_HEADER = "x-site-flash";
 
-export async function setFlash(message: FlashMessage): Promise<void> {
-  const store = await cookies();
-  store.set(FLASH_COOKIE, JSON.stringify(message), {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: cookieSecure(),
-    path: "/",
-    maxAge: 60,
-  });
-}
-
-export async function consumeFlash(): Promise<FlashMessage | null> {
-  const store = await cookies();
-  const raw = store.get(FLASH_COOKIE)?.value;
+export function parseFlashMessage(raw: string | null | undefined): FlashMessage | null {
   if (!raw) {
     return null;
   }
-
-  store.delete(FLASH_COOKIE);
 
   try {
     const parsed = JSON.parse(raw) as FlashMessage;
@@ -45,4 +31,25 @@ export async function consumeFlash(): Promise<FlashMessage | null> {
   }
 
   return null;
+}
+
+export async function setFlash(message: FlashMessage): Promise<void> {
+  const store = await cookies();
+  store.set(FLASH_COOKIE, JSON.stringify(message), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: cookieSecure(),
+    path: "/",
+    maxAge: 60,
+  });
+}
+
+export async function readFlash(): Promise<FlashMessage | null> {
+  const raw = (await headers()).get(FLASH_HEADER);
+  return parseFlashMessage(raw);
+}
+
+/** @deprecated Użyj readFlash — odczyt z nagłówka ustawianego w proxy. */
+export async function consumeFlash(): Promise<FlashMessage | null> {
+  return readFlash();
 }

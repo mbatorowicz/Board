@@ -51,6 +51,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  aspect-ratio: 5 / 3;
   min-height: 120px;
   padding: 0;
   overflow: hidden;
@@ -66,13 +67,16 @@
 .linkTileMedia {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 
 .linkTileImage {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 
 .linkTileOverlay {
@@ -192,7 +196,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 88px;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  min-height: 120px;
   padding: 16px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
