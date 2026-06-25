@@ -35,10 +35,27 @@ export interface QuickLinkInput {
   description?: string;
 }
 
+export type UserRole = "reader" | "editor" | "admin";
+
+export type UserLoginMode = "select" | "type";
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+  pinHash: string;
+  personalLinks: QuickLink[];
+  createdAt: string;
+  lastSeenAt?: string;
+  lastIp?: string;
+  lastHost?: string;
+}
+
 export interface SiteSettings {
   hiddenCertCategories: string[];
   headerTitle: string;
   headerSubtitle: string;
+  userLoginMode: UserLoginMode;
 }
 
 export interface Acknowledgment {
@@ -51,4 +68,28 @@ export interface Acknowledgment {
 export interface AcknowledgmentInput {
   name: string;
   ip?: string;
+}
+
+export interface PageView {
+  id: string;
+  path: string;
+  host: string;
+  createdAt: string;
+  ip?: string;
+  userId?: string;
+  userName?: string;
+}
+
+export interface PageViewInput {
+  path: string;
+  host: string;
+  ip?: string;
+  userId?: string;
+  userName?: string;
+}
+
+export interface HomePageViewStats {
+  visitsLast7Days: number;
+  uniqueHostsLast7Days: number;
+  lastVisit: PageView | null;
 }

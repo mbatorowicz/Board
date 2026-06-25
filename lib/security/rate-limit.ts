@@ -26,6 +26,6 @@ export function checkRateLimit(
   return true;
 }
 
-export function rateLimitKey(scope: string, ip: string | null): string {
-  return `${scope}:${ip ?? "unknown"}`;
+export function rateLimitKey(scope: string): string {
+  return scope;
 }

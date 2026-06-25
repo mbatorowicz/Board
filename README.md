@@ -5,9 +5,9 @@ Wewnętrzna strona startowa dla pracowników urzędu, zbudowana w Next.js (App R
 - **Ostrzeżenia CERT Polska** – pobierane i cache'owane z publicznego kanału RSS,
 - **Ogłoszenia wewnętrzne** – redagowane przez urząd w panelu `/admin`,
 - **Szybkie linki** – skróty do najczęściej używanych systemów,
-- **Potwierdzenie zapoznania się** – przycisk, którym pracownik potwierdza zapoznanie się z ostrzeżeniami i stroną główną (imię, data i IP zapisywane i widoczne w panelu `/admin`).
+- **Potwierdzenie zapoznania się** – przycisk, którym pracownik potwierdza zapoznanie się z ostrzeżeniami i stroną główną (imię i data zapisywane w panelu `/admin`).
 
-Dostęp można dodatkowo ograniczyć allowlistą IP (`proxy.ts`).
+Dostęp ograniczony jest do sieci urzędu (LAN) — aplikacja nie jest wystawiana w publicznym internecie.
 
 ## Wymagania
 
@@ -22,23 +22,21 @@ Skopiuj `.env.example` do `.env` (Docker / QNAP) lub `.env.local` (development):
 | --- | --- |
 | `ADMIN_PASSWORD` | Hasło do panelu `/admin` (**wymagane** na produkcji). |
 | `OFFICE_NAME` | Nazwa urzędu w nagłówku. |
-| `ALLOWED_IPS` | Opcjonalna allowlista IP, kilka po przecinku. Obsługuje CIDR, np. `192.168.1.0/24`. Puste = brak ograniczeń w `proxy.ts`. Na QNAP w LAN często wystarczy puste pole — strona i tak jest dostępna tylko w sieci urzędu. |
 | `CERT_FEED_URL` | Adres kanału RSS CERT (domyślnie kanał CERT Polska). |
 | `FEED_REVALIDATE_SECONDS` | Co ile sekund odświeżać dane CERT (domyślnie 1200 = 20 min). |
-| `TRUST_PROXY` | Ustaw `true` **tylko** za zaufanym reverse proxy (nginx), który **nadpisuje** `X-Real-IP` adresem klienta. Bez tego allowlista IP w panelu **nie blokuje** ruchu — ochrona opiera się wyłącznie na izolacji LAN. |
+| `LINK_THUMBS` | Ustaw `placeholder`, aby pominąć pobieranie miniatur linków (oszczędność CPU na QNAP). |
 | `COOKIE_SECURE` | Ustaw `true` przy HTTPS (reverse proxy z TLS). Wymagane dla flagi `Secure` na ciasteczkach sesji. |
 
-Wszystkie dane aplikacji (ogłoszenia, potwierdzenia, linki, ustawienia, allowlista) zapisują się w plikach JSON w katalogu `.data/`.
+Wszystkie dane aplikacji (ogłoszenia, potwierdzenia, linki, ustawienia) zapisują się w plikach JSON w katalogu `.data/`.
 
 ## Bezpieczeństwo
 
 - Panel `/admin` nie jest linkowany ze strony głównej — wejście tylko bezpośrednim adresem.
 - Sesja admina: losowy token (8 h), `httpOnly`, `sameSite=strict`.
 - Logowanie i wylogowanie: token CSRF w formularzu + weryfikacja po stronie serwera.
-- Rate limiting logowania (5 prób / 15 min) i miniaturek linków (30/min) oraz potwierdzeń zapoznania (per IP, gdy `TRUST_PROXY=true`).
+- Rate limiting logowania (5 prób / 15 min), miniaturek linków (30/min) i potwierdzeń zapoznania.
 - Linki i feed CERT: tylko `https://` (w dev także `http://`).
 - Nagłówki CSP, `X-Frame-Options`, `nosniff` — w `next.config.ts`.
-- Allowlista IP: wymaga `TRUST_PROXY=true` i reverse proxy ustawiającego `X-Real-IP` — **nie** ufaj nagłówkom wysłanym przez przeglądarkę. Panel admina ostrzega, gdy lista IP jest zapisana, ale ochrona wyłączona.
 - Regularnie rób backup katalogu `data/` / `.data/`.
 
 ## Uruchomienie lokalne (development)
@@ -48,7 +46,7 @@ npm install
 npm run dev
 ```
 
-Strona: http://localhost:3000 — w trybie deweloperskim allowlista IP przepuszcza `localhost`.
+Strona: http://localhost:3000
 
 ## Wdrożenie na QNAP
 
@@ -114,7 +112,7 @@ Strona: `http://<adres-ip-qnap>:3000` z komputera w sieci urzędu.
 
 ### 4. Backup
 
-Regularnie kopiuj folder **`data/`** (ogłoszenia, potwierdzenia, linki, ustawienia, allowlista). Możesz użyć harmonogramu snapshotów QNAP lub HBS.
+Regularnie kopiuj folder **`data/`** (ogłoszenia, potwierdzenia, linki, ustawienia). Możesz użyć harmonogramu snapshotów QNAP lub HBS.
 
 Przykład ręcznej kopii:
 
@@ -156,9 +154,8 @@ Ustaw zmienne środowiskowe jak w `.env.example`. Dane zapisują się w `.data/`
 
 ## Kontrola dostępu
 
-- `proxy.ts` sprawdza adres IP klienta (`x-forwarded-for`) i porównuje z allowlistą. Lista może być zarządzana w panelu `/admin` (zapis w `.data/allowlist.json`); dopóki nie zostanie zapisana, używana jest zmienna `ALLOWED_IPS`.
-- Panel `/admin` wymaga hasła (`ADMIN_PASSWORD`).
-- Na QNAP w LAN główną barierą jest brak publicznego URL — allowlista IP jest dodatkową warstwą, nie jedyną.
+- Panel `/admin` wymaga hasła (`ADMIN_PASSWORD`); pracownicy logują się PIN-em.
+- Na QNAP w LAN główną barierą jest brak publicznego URL — nie wystawiaj portu 3000 w internecie.
 
 ## Struktura
 
@@ -171,8 +168,7 @@ Ustaw zmienne środowiskowe jak w `.env.example`. Dane zapisują się w `.data/`
 - `lib/acknowledgments.ts` – potwierdzenia
 - `lib/links.ts` – szybkie linki
 - `lib/settings.ts` – widoczność kategorii CERT
-- `lib/allowlist.ts` – whitelista IP
 - `lib/logo.ts` – logo urzędu (plik w `.data/`, upload w panelu admina)
-- `proxy.ts` – egzekwowanie allowlisty IP
+- `proxy.ts` – logowanie odwiedzin i kontekst żądania
 - `Dockerfile`, `docker-compose.yml` – wdrożenie na QNAP
 - `components/` – komponenty UI

@@ -20,6 +20,7 @@ function defaultSettings(): SiteSettings {
     hiddenCertCategories: [],
     headerTitle: defaultHeaderTitle(),
     headerSubtitle: defaultHeaderSubtitle(),
+    userLoginMode: "select",
   };
 }
 
@@ -41,7 +42,15 @@ function normalize(raw: unknown): SiteSettings {
       ? clampText(value.headerSubtitle, LIMITS.headerSubtitle)
       : defaultHeaderSubtitle();
 
-  return { hiddenCertCategories: hidden, headerTitle, headerSubtitle };
+  const userLoginMode =
+    value.userLoginMode === "type" ? "type" : "select";
+
+  return {
+    hiddenCertCategories: hidden,
+    headerTitle,
+    headerSubtitle,
+    userLoginMode,
+  };
 }
 
 export async function getSettings(): Promise<SiteSettings> {

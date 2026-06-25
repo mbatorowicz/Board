@@ -14,7 +14,9 @@ export const copy = {
     cert: "Brak aktualnych ostrzeżeń.",
     announcements: "Brak ogłoszeń.",
     links: "Brak linków.",
+    users: "Brak użytkowników.",
     acknowledgments: "Brak potwierdzeń.",
+    pageViews: "Brak odwiedzin w rejestrze.",
     certCategories:
       "Brak kategorii do skonfigurowania — nie udało się pobrać ostrzeżeń lub nie mają one kategorii.",
   },
@@ -27,21 +29,28 @@ export const copy = {
     login: "Zaloguj",
     logout: "Wyloguj",
     save: "Zapisz",
-    edit: "Zapisz zmiany",
+    edit: "Edytuj",
+    saveChanges: "Zapisz zmiany",
+    details: "Szczegóły",
+    loginSettings: "Tryb logowania",
     delete: "Usuń",
+    changeRole: "Zmień rolę",
+    resetPin: "Reset PIN",
     addAnnouncement: "Dodaj ogłoszenie",
     addLink: "Dodaj link",
+    addUser: "Dodaj użytkownika",
     saveLink: "Zapisz link",
-    saveAllowlist: "Zapisz allowlistę",
     saveHeader: "Zapisz nagłówek",
     saveCertCategories: "Zapisz ustawienia kategorii",
     clearAcknowledgments: "Wyczyść rejestr",
+    clearPageViews: "Wyczyść rejestr",
     acknowledge: "Potwierdzam zapoznanie",
     uploadLogo: "Wgraj logo",
     removeLogo: "Usuń logo",
   },
   labels: {
     password: "Hasło",
+    pin: "PIN",
     logoFile: "Plik logo (PNG, JPG, WebP lub SVG, max. 2 MB)",
     headerTitle: "Tytuł nagłówka",
     headerSubtitle: "Podtytuł nagłówka",
@@ -51,8 +60,14 @@ export const copy = {
     linkName: "Nazwa",
     linkUrl: "Adres URL",
     linkDescription: "Opis (opcjonalnie)",
-    allowedIps: "Dozwolone adresy IP",
     fullName: "Imię i nazwisko",
+    role: "Rola",
+    newPin: "Nowy PIN",
+  },
+  roles: {
+    reader: "Czytelnik",
+    editor: "Edytor",
+    admin: "Administrator",
   },
   admin: {
     title: "Panel administracyjny",
@@ -63,26 +78,31 @@ export const copy = {
     rateLimited: "Zbyt wiele prób logowania. Spróbuj ponownie za chwilę.",
     csrfFailed: "Sesja wygasła lub żądanie jest nieprawidłowe. Odśwież stronę i spróbuj ponownie.",
     unauthorized: "Brak autoryzacji. Zaloguj się ponownie.",
-    allowlistInactive:
-      "Zapisano listę IP, ale ochrona jest wyłączona — ustaw TRUST_PROXY=true za reverse proxy (nginx), inaczej lista nie blokuje ruchu.",
-    allowlistSaved: "Allowlista IP została zapisana.",
-    allowlistProxyRequired:
-      "Allowlista IP wymaga TRUST_PROXY=true oraz reverse proxy ustawiającego X-Real-IP od klienta (nie od przeglądarki).",
-    allowlistTitle: "Allowlista IP",
-    allowlistHelp:
-      "Jeden adres IPv4 lub zakres CIDR w wierszu (np. 192.168.1.10 lub 192.168.1.0/24). Puste pole — brak ograniczeń. Allowlista działa tylko przy TRUST_PROXY=true i reverse proxy ustawiającym X-Real-IP.",
-    allowlistCurrentIp: (ip: string) => `Twój adres IP: ${ip}`,
-    allowlistUnknownIp: "Twój adres IP: nieznany (localhost)",
-    allowlistWarning:
-      "Jeśli zapiszesz listę bez swojego adresu IP, możesz stracić dostęp do strony i panelu (poza środowiskiem lokalnym).",
     certCategoriesTitle: "Kategorie CERT na stronie głównej",
     certCategoriesHelp:
       "Odznacz kategorie, których ostrzeżenia mają być ukryte na stronie głównej.",
+    boardTab: "Tablica",
+    settingsTab: "Ustawienia",
+    boardAnnouncementsSubtab: "Ogłoszenia",
+    boardLinksSubtab: "Linki",
+    boardCertSubtab: "CERT",
+    settingsTitle: "Wygląd strony",
     addAnnouncement: "Nowe ogłoszenie",
     existingAnnouncements: "Ogłoszenia",
     addLink: "Nowy szybki link",
     quickLinks: "Szybkie linki",
     acknowledgments: "Rejestr potwierdzeń",
+    pageViews: "Rejestr odwiedzin",
+    pageViewsHelp:
+      "Automatyczny zapis wejść na stronę główną i panel admina. Pozwala sprawdzić, czy pracownicy korzystają ze strony — niezależnie od potwierdzeń.",
+    pageViewsStatsVisits: (count: number) =>
+      `Odwiedziny strony głównej (7 dni): ${count}`,
+    pageViewsStatsHosts: (count: number) =>
+      `Unikalne hosty (7 dni): ${count}`,
+    pageViewsLastVisit: (date: string, host: string) =>
+      `Ostatnia wizyta na stronie głównej: ${date} — ${host}`,
+    pageViewsNoLastVisit: "Brak odwiedzin strony głównej w rejestrze.",
+    pageViewsCleared: "Rejestr odwiedzin został wyczyszczony.",
     headerTitle: "Nagłówek strony",
     headerPreview: "Podgląd nagłówka",
     headerTextForm: "Teksty nagłówka",
@@ -106,21 +126,51 @@ export const copy = {
     linkInvalid: "Podaj nazwę i poprawny adres URL (https://).",
     certCategoriesSaved: "Ustawienia kategorii CERT zostały zapisane.",
     acknowledgmentsCleared: "Rejestr potwierdzeń został wyczyszczony.",
+    usersTitle: "Użytkownicy",
+    usersHelp:
+      "Konta pracowników do logowania na stronie głównej. Admin tworzy użytkownika z imieniem, rolą i PIN-em (4–6 cyfr).",
+    userLoginModeTitle: "Tryb logowania",
+    userLoginModeSelect: "Lista wyboru (imię z listy + PIN)",
+    userLoginModeType: "Wpisywanie imienia i nazwiska (bez podpowiedzi) + PIN",
+    userLoginModeSaved: "Tryb logowania został zapisany.",
+    userCreated: "Użytkownik został utworzony.",
+    userUpdated: "Rola użytkownika została zapisana.",
+    userPinReset: "PIN użytkownika został zmieniony.",
+    userDeleted: "Użytkownik został usunięty.",
+    userInvalid: "Podaj imię, rolę i PIN (4–6 cyfr).",
+    userExists: "Użytkownik o tym imieniu już istnieje.",
+    userStatsTitle: "Statystyki użytkowników",
+    userStatsVisits7: (name: string, count: number) =>
+      `${name} — odwiedziny (7 dni): ${count}`,
+    userStatsVisits30: (name: string, count: number) =>
+      `${name} — odwiedziny (30 dni): ${count}`,
+    userStatsLastVisit: (name: string, date: string, host: string) =>
+      `${name} — ostatnia wizyta: ${date} — ${host}`,
+    statsVisits7: "Odwiedziny (7 dni)",
+    statsVisits30: "Odwiedziny (30 dni)",
+    statsLastVisit: "Ostatnia wizyta",
+    detailPath: "Ścieżka",
+    detailHost: "Host",
+    detailDate: "Data",
+    editorOnlyAnnouncements:
+      "Masz dostęp tylko do zarządzania ogłoszeniami.",
+    readerNoAdmin: "Brak dostępu do panelu administracyjnego.",
+  },
+  userSession: {
+    loggedInAs: (name: string) => `Zalogowany: ${name}`,
+    selectUser: "Wybierz…",
+    loginFailed: "Nieprawidłowe dane logowania.",
+    rateLimited: "Zbyt wiele prób logowania. Spróbuj ponownie za chwilę.",
   },
   acknowledge: {
     intro:
       "Potwierdzam zapoznanie z ostrzeżeniami CERT oraz treścią strony głównej.",
+    loginRequired: "Zaloguj się w nagłówku, aby potwierdzić zapoznanie.",
     thanks: (name: string) => `Dziękujemy, ${name}.`,
     confirmedAt: (date: string) => `Potwierdzenie zapisane: ${date}.`,
     invalidName: "Podaj imię i nazwisko (min. 1 znak).",
     rateLimited: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
     saveFailed: "Nie udało się zapisać potwierdzenia. Spróbuj ponownie.",
-  },
-  access: {
-    forbiddenTitle: "Dostęp ograniczony",
-    forbiddenHeading: "Dostęp tylko z sieci urzędu",
-    forbiddenBody:
-      "Ta strona jest dostępna wyłącznie z komputerów w sieci urzędu. Jeśli widzisz ten komunikat na stanowisku służbowym, skontaktuj się z informatykiem.",
   },
   clock: {
     loading: "Ładowanie…",
@@ -139,6 +189,7 @@ export const copy = {
     invalidUrl: "Adres URL musi zaczynać się od https://",
     limitReached: (max: number) =>
       `Możesz dodać maksymalnie ${max} własnych linków.`,
+    loginRequired: "Zaloguj się, aby dodać własne linki.",
   },
 } as const;
 

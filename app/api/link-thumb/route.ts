@@ -3,7 +3,6 @@ import {
   placeholderThumbnail,
   resolveLinkThumbnail,
 } from "@/lib/link-thumb";
-import { getClientIpFromRequest } from "@/lib/security/client-ip";
 import { clampText } from "@/lib/security/validate";
 import { isSafeThumbTargetResolved } from "@/lib/security/thumb-target";
 import { LIMITS, RATE_LIMITS } from "@/lib/security/limits";
@@ -34,11 +33,15 @@ export async function GET(request: NextRequest) {
   const rawUrl = searchParams.get("url") ?? "";
   const url = clampText(rawUrl, LIMITS.url);
   const label = clampText(searchParams.get("label") ?? "?", LIMITS.linkLabel);
-  const ip = getClientIpFromRequest(request);
+
+  if (process.env.LINK_THUMBS === "placeholder") {
+    const fallback = placeholderThumbnail(label);
+    return thumbResponse(fallback.buffer, fallback.mime);
+  }
 
   if (
     !checkRateLimit(
-      rateLimitKey("link-thumb", ip),
+      rateLimitKey("link-thumb"),
       RATE_LIMITS.linkThumb.max,
       RATE_LIMITS.linkThumb.windowMs,
     )

@@ -12,6 +12,8 @@ import { getSettings } from "@/lib/settings";
 import { getOfficeLogo } from "@/lib/logo";
 import { readFlash } from "@/lib/flash";
 import { copy } from "@/lib/copy";
+import { getCurrentUser } from "@/lib/user-session";
+import { getUserPersonalLinks, getUsers } from "@/lib/users";
 import ui from "@/styles/ui.module.css";
 import styles from "./page.module.css";
 
@@ -33,23 +35,42 @@ function readConfirmation(
 }
 
 export default async function Home() {
-  const [allAdvisories, announcements, quickLinks, settings, logo, cookieStore] =
-    await Promise.all([
-      getAdvisories(),
-      getAnnouncements(),
-      getQuickLinks(),
-      getSettings(),
-      getOfficeLogo(),
-      cookies(),
-    ]);
+  const currentUser = await getCurrentUser();
+
+  const [
+    allAdvisories,
+    announcements,
+    quickLinks,
+    settings,
+    logo,
+    cookieStore,
+    users,
+    personalLinks,
+  ] = await Promise.all([
+    getAdvisories(),
+    getAnnouncements(),
+    getQuickLinks(),
+    getSettings(),
+    getOfficeLogo(),
+    cookies(),
+    getUsers(),
+    currentUser ? getUserPersonalLinks(currentUser.id) : Promise.resolve([]),
+  ]);
 
   const hidden = new Set(settings.hiddenCertCategories);
   const advisories = allAdvisories.filter(
     (advisory) => !hidden.has(advisory.category),
   );
 
-  const confirmation = readConfirmation(cookieStore.get(ACK_COOKIE)?.value);
+  const ackCookie = readConfirmation(cookieStore.get(ACK_COOKIE)?.value);
+  const confirmation =
+    currentUser && ackCookie?.name === currentUser.name ? ackCookie : null;
   const flash = await readFlash();
+
+  const selectableUsers =
+    settings.userLoginMode === "select"
+      ? users.map((user) => ({ id: user.id, name: user.name }))
+      : [];
 
   return (
     <div id="page-content" className={styles.page}>
@@ -57,6 +78,9 @@ export default async function Home() {
         logo={logo}
         title={settings.headerTitle}
         subtitle={settings.headerSubtitle}
+        currentUser={currentUser}
+        loginMode={settings.userLoginMode}
+        selectableUsers={selectableUsers}
       />
 
       <section
@@ -68,7 +92,11 @@ export default async function Home() {
             {copy.sections.quickLinks}
           </h2>
         </div>
-        <QuickLinksPanel globalLinks={quickLinks} />
+        <QuickLinksPanel
+          globalLinks={quickLinks}
+          personalLinks={personalLinks}
+          isLoggedIn={Boolean(currentUser)}
+        />
       </section>
 
       <main className={styles.main}>
@@ -120,7 +148,11 @@ export default async function Home() {
             {copy.sections.acknowledge}
           </h2>
         </div>
-        <AcknowledgeBox confirmation={confirmation} flash={flash} />
+        <AcknowledgeBox
+          confirmation={confirmation}
+          flash={flash}
+          currentUser={currentUser}
+        />
       </section>
     </div>
   );

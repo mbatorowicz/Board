@@ -24,9 +24,17 @@ export async function readJsonFile<T>(filename: string): Promise<T | null> {
 async function replaceFile(tmpPath: string, targetPath: string): Promise<void> {
   try {
     await fs.rename(tmpPath, targetPath);
-  } catch {
-    await fs.copyFile(tmpPath, targetPath);
-    await fs.unlink(tmpPath);
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? (error as NodeJS.ErrnoException).code
+        : undefined;
+    if (code === "EXDEV") {
+      await fs.copyFile(tmpPath, targetPath);
+      await fs.unlink(tmpPath).catch(() => undefined);
+      return;
+    }
+    throw error;
   }
 }
 

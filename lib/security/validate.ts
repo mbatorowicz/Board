@@ -24,7 +24,6 @@ export function isSafeHttpUrl(url: string): boolean {
 
 const IPV4_PART = "(?:25[0-5]|2[0-4]\\d|1?\\d{1,2})";
 const IPV4 = `${IPV4_PART}(?:\\.${IPV4_PART}){3}`;
-const IPV4_CIDR = new RegExp(`^${IPV4}\\/(?:[0-9]|[1-2]\\d|3[0-2])$`);
 const IPV4_EXACT = new RegExp(`^${IPV4}$`);
 
 const BLOCKED_HOSTNAMES = new Set([
@@ -94,18 +93,6 @@ export function isSafeThumbTarget(url: string): boolean {
   } catch {
     return false;
   }
-}
-
-export function isValidAllowlistRule(rule: string): boolean {
-  return IPV4_EXACT.test(rule) || IPV4_CIDR.test(rule);
-}
-
-export function parseAllowlistInput(raw: string): string[] {
-  const trimmed = raw.slice(0, LIMITS.allowlistRaw);
-  return trimmed
-    .split(/[\s,]+/)
-    .map((part) => part.trim())
-    .filter(Boolean);
 }
 
 export function validateAnnouncementInput(input: {

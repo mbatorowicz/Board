@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { FLASH_COOKIE, FLASH_HEADER } from "@/lib/flash";
+import { FLASH_COOKIE, FLASH_HEADER, encodeFlashHeaderValue } from "@/lib/flash";
 import { CSRF_COOKIE, CSRF_HEADER, isValidCsrfToken } from "@/lib/security/csrf";
 
 function generateCsrfToken(): string {
@@ -32,7 +32,7 @@ export function nextWithRequestContext(
 
   const flashRaw = request.cookies.get(FLASH_COOKIE)?.value;
   if (flashRaw) {
-    requestHeaders.set(FLASH_HEADER, flashRaw);
+    requestHeaders.set(FLASH_HEADER, encodeFlashHeaderValue(flashRaw));
   }
 
   let csrfToken: string | undefined;

@@ -2,37 +2,31 @@ import { headers } from "next/headers";
 import { getAdminPassword } from "@/lib/config";
 import { getAnnouncements } from "@/lib/announcements";
 import { getAcknowledgments } from "@/lib/acknowledgments";
+import {
+  computeHomePageStats,
+  computeUserPageViewStats,
+  getPageViews,
+} from "@/lib/page-views";
 import { getAdvisories } from "@/lib/cert";
 import { getQuickLinks } from "@/lib/links";
 import { getSettings } from "@/lib/settings";
-import { getAllowedIps } from "@/lib/allowlist";
 import { getOfficeLogo } from "@/lib/logo";
-import { isAuthed } from "@/lib/admin-auth";
+import { isAuthed, isEditorAuthed } from "@/lib/admin-auth";
+import { getCurrentUser } from "@/lib/user-session";
+import { getUsers } from "@/lib/users";
+import { resolveAdminTab, resolveBoardSection } from "@/lib/admin-tabs";
 import { readFlash } from "@/lib/flash";
-import { AdminCsrfField } from "@/components/AdminCsrfField";
+import { CsrfField } from "@/components/admin/CsrfField";
 import FlashBanner from "@/components/FlashBanner";
-import { HeaderBrandPreview } from "@/components/PageHeader";
-import { copy, withCount } from "@/lib/copy";
-import { formatAdminDateTime, formatIso } from "@/lib/format";
-import {
-  allowlistEnforcementEnabled,
-  getClientIpFromHeaders,
-} from "@/lib/security/client-ip";
+import AdminNav from "@/components/admin/AdminNav";
+import BoardPanel from "@/components/admin/panels/BoardPanel";
+import SettingsPanel from "@/components/admin/panels/SettingsPanel";
+import UsersPanel from "@/components/admin/panels/UsersPanel";
+import AdminStatsList from "@/components/admin/panels/AdminStatsList";
+import { copy } from "@/lib/copy";
+import { CSRF_HEADER } from "@/lib/security/csrf";
+import { logoutUserAction } from "@/app/user-session";
 import ui from "@/styles/ui.module.css";
-import {
-  clearAcknowledgmentsAction,
-  createAction,
-  createLinkAction,
-  deleteAction,
-  deleteLinkAction,
-  removeLogoAction,
-  saveAllowlistAction,
-  saveHeaderAction,
-  saveCertCategoriesAction,
-  updateAction,
-  updateLinkAction,
-  uploadLogoAction,
-} from "./actions";
 import styles from "./admin.module.css";
 
 export const dynamic = "force-dynamic";
@@ -47,9 +41,16 @@ export default async function AdminPage({
   const params = await searchParams;
   const loginError =
     typeof params.error === "string" ? params.error : undefined;
+  const tabParam = typeof params.tab === "string" ? params.tab : undefined;
+  const sectionParam =
+    typeof params.section === "string" ? params.section : undefined;
   const flash = await readFlash();
+  const hasAdminPassword = Boolean(getAdminPassword());
+  const editorAuthed = await isEditorAuthed();
+  const fullAdmin = await isAuthed();
+  const currentUser = await getCurrentUser();
 
-  if (!getAdminPassword()) {
+  if (!hasAdminPassword && !editorAuthed && !fullAdmin) {
     return (
       <main className={styles.page}>
         <div className={`${ui.surface} ${styles.card}`}>
@@ -60,9 +61,7 @@ export default async function AdminPage({
     );
   }
 
-  const authed = await isAuthed();
-
-  if (!authed) {
+  if (!editorAuthed && !fullAdmin) {
     return (
       <main className={styles.page}>
         <div className={`${ui.surface} ${styles.card}`}>
@@ -78,7 +77,7 @@ export default async function AdminPage({
             <p className={ui.error}>{copy.admin.wrongPassword}</p>
           ) : null}
           <form action="/api/admin/login" method="POST" className={ui.form}>
-            <AdminCsrfField />
+            <CsrfField />
             <label className={ui.label}>
               {copy.labels.password}
               <input
@@ -98,36 +97,72 @@ export default async function AdminPage({
     );
   }
 
+  const isEditorOnly = editorAuthed && !fullAdmin;
+  const activeTab = resolveAdminTab(tabParam, fullAdmin, isEditorOnly);
+  const boardSection = resolveBoardSection(sectionParam, {
+    editorOnly: isEditorOnly,
+    legacyAnnouncementsTab: tabParam === "announcements" && !sectionParam,
+  });
+
+  const onBoard = activeTab === "board";
+  const needsBoardAnnouncements =
+    onBoard && boardSection === "announcements";
+
+  const needsBoardLinks =
+    fullAdmin && onBoard && boardSection === "links";
+  const needsBoardCert = fullAdmin && onBoard && boardSection === "cert";
+  const needsSettings = fullAdmin && activeTab === "settings";
+
+  const needsUsers = fullAdmin && activeTab === "users";
+  const needsSettingsData =
+    needsSettings || needsBoardCert || needsUsers;
+
   const [
     announcements,
     acknowledgments,
+    pageViews,
     advisories,
     links,
     settings,
-    allowedIps,
     logo,
     headerList,
+    users,
   ] = await Promise.all([
-    getAnnouncements(),
-    getAcknowledgments(),
-    getAdvisories(),
-    getQuickLinks(),
-    getSettings(),
-    getAllowedIps(),
-    getOfficeLogo(),
+    needsBoardAnnouncements ? getAnnouncements() : Promise.resolve([]),
+    fullAdmin && activeTab === "stats"
+      ? getAcknowledgments()
+      : Promise.resolve([]),
+    fullAdmin && activeTab === "stats"
+      ? getPageViews()
+      : Promise.resolve([]),
+    needsBoardCert ? getAdvisories() : Promise.resolve([]),
+    needsBoardLinks ? getQuickLinks() : Promise.resolve([]),
+    needsSettingsData ? getSettings() : Promise.resolve(null),
+    needsSettings ? getOfficeLogo() : Promise.resolve(null),
     headers(),
+    needsUsers ? getUsers() : Promise.resolve([]),
   ]);
 
-  const currentIp = getClientIpFromHeaders(headerList);
+  const homePageStats =
+    fullAdmin && activeTab === "stats"
+      ? computeHomePageStats(pageViews)
+      : { visitsLast7Days: 0, uniqueHostsLast7Days: 0, lastVisit: null };
+  const userStats =
+    fullAdmin && activeTab === "stats"
+      ? computeUserPageViewStats(pageViews)
+      : [];
 
-  const hiddenCategories = new Set(settings.hiddenCertCategories);
-  const certCategories = Array.from(
-    new Set(
-      advisories
-        .map((advisory) => advisory.category)
-        .filter((category) => category.length > 0),
-    ),
-  ).sort((a, b) => a.localeCompare(b, "pl"));
+  const csrfToken = headerList.get(CSRF_HEADER) ?? "";
+  const hiddenCategories = new Set(settings?.hiddenCertCategories ?? []);
+  const certCategories = needsBoardCert
+    ? Array.from(
+        new Set(
+          advisories
+            .map((advisory) => advisory.category)
+            .filter((category) => category.length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b, "pl"))
+    : [];
 
   return (
     <main className={styles.page}>
@@ -135,370 +170,61 @@ export default async function AdminPage({
 
       <div className={styles.header}>
         <h1 className={styles.title}>{copy.admin.title}</h1>
-        <form action="/api/admin/logout" method="POST">
-          <AdminCsrfField />
-          <button className={`${ui.button} ${ui.buttonGhost}`} type="submit">
-            {copy.actions.logout}
-          </button>
-        </form>
+        {fullAdmin ? (
+          <form action="/api/admin/logout" method="POST">
+            <CsrfField />
+            <button className={`${ui.button} ${ui.buttonGhost}`} type="submit">
+              {copy.actions.logout}
+            </button>
+          </form>
+        ) : currentUser ? (
+          <form action={logoutUserAction}>
+            <button className={`${ui.button} ${ui.buttonGhost}`} type="submit">
+              {copy.actions.logout}
+            </button>
+          </form>
+        ) : null}
       </div>
 
-      <section className={`${ui.surface} ${styles.card}`}>
-        <h2 className={ui.sectionTitle}>{copy.admin.headerTitle}</h2>
+      <AdminNav
+        activeTab={activeTab}
+        fullAdmin={fullAdmin}
+        editorOnly={isEditorOnly}
+      />
 
-        <h3 className={styles.subheading}>{copy.admin.headerPreview}</h3>
-        <div className={styles.headerPreview}>
-          <HeaderBrandPreview
-            logo={logo}
-            title={settings.headerTitle}
-            subtitle={settings.headerSubtitle}
-            className={styles.headerPreviewBrand}
-            logoClassName={styles.headerPreviewLogo}
-            titleClassName={styles.headerPreviewTitle}
-            subtitleClassName={styles.headerPreviewSubtitle}
-          />
-        </div>
+      {isEditorOnly ? (
+        <p className={ui.notice}>{copy.admin.editorOnlyAnnouncements}</p>
+      ) : null}
 
-        <h3 className={styles.subheading}>{copy.admin.headerTextForm}</h3>
-        <form action={saveHeaderAction} className={ui.form}>
-          <AdminCsrfField />
-          <label className={ui.label}>
-            {copy.labels.headerTitle}
-            <input
-              className={ui.input}
-              type="text"
-              name="headerTitle"
-              defaultValue={settings.headerTitle}
-              required
-            />
-          </label>
-          <label className={ui.label}>
-            {copy.labels.headerSubtitle}
-            <input
-              className={ui.input}
-              type="text"
-              name="headerSubtitle"
-              defaultValue={settings.headerSubtitle}
-            />
-          </label>
-          <button className={ui.button} type="submit">
-            {copy.actions.saveHeader}
-          </button>
-        </form>
+      {onBoard ? (
+        <BoardPanel
+          activeSection={boardSection}
+          announcements={announcements}
+          links={links}
+          certCategories={certCategories}
+          hiddenCategories={hiddenCategories}
+          csrfToken={csrfToken}
+          editorOnly={isEditorOnly}
+        />
+      ) : null}
 
-        <h3 className={styles.subheading}>{copy.admin.logoForm}</h3>
-        <p className={ui.notice}>{copy.admin.logoHelp}</p>
-        {!logo ? (
-          <p className={ui.emptyPlain}>{copy.admin.logoMissing}</p>
-        ) : null}
-        <form
-          action={uploadLogoAction}
-          className={ui.form}
-          encType="multipart/form-data"
-        >
-          <AdminCsrfField />
-          <label className={ui.label}>
-            {copy.labels.logoFile}
-            <input
-              className={styles.fileInput}
-              type="file"
-              name="logo"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            />
-          </label>
-          <button className={ui.button} type="submit">
-            {copy.actions.uploadLogo}
-          </button>
-        </form>
-        {logo ? (
-          <form action={removeLogoAction}>
-            <AdminCsrfField />
-            <button
-              className={`${ui.button} ${ui.buttonGhost}`}
-              type="submit"
-            >
-              {copy.actions.removeLogo}
-            </button>
-          </form>
-        ) : null}
-      </section>
+      {fullAdmin && activeTab === "settings" && settings ? (
+        <SettingsPanel settings={settings} logo={logo} />
+      ) : null}
 
-      <section className={`${ui.surface} ${styles.card}`}>
-        <h2 className={ui.sectionTitle}>{copy.admin.allowlistTitle}</h2>
-        <p className={ui.notice}>{copy.admin.allowlistHelp}</p>
-        {!allowlistEnforcementEnabled() ? (
-          <p className={ui.warning}>{copy.admin.allowlistProxyRequired}</p>
-        ) : null}
-        {allowedIps.length > 0 && !allowlistEnforcementEnabled() ? (
-          <p className={ui.error}>{copy.admin.allowlistInactive}</p>
-        ) : null}
-        <p className={ui.notice}>
-          {currentIp
-            ? copy.admin.allowlistCurrentIp(currentIp)
-            : copy.admin.allowlistUnknownIp}
-        </p>
-        <p className={ui.warning}>{copy.admin.allowlistWarning}</p>
-        <form action={saveAllowlistAction} className={ui.form}>
-          <AdminCsrfField />
-          <label className={ui.label}>
-            {copy.labels.allowedIps}
-            <textarea
-              className={ui.textarea}
-              name="ips"
-              rows={5}
-              defaultValue={allowedIps.join("\n")}
-              placeholder="192.168.1.10&#10;192.168.1.0/24"
-            />
-          </label>
-          <button className={ui.button} type="submit">
-            {copy.actions.saveAllowlist}
-          </button>
-        </form>
-      </section>
+      {fullAdmin && activeTab === "users" && settings ? (
+        <UsersPanel users={users} settings={settings} csrfToken={csrfToken} />
+      ) : null}
 
-      <section className={`${ui.surface} ${styles.card}`}>
-        <h2 className={ui.sectionTitle}>{copy.admin.certCategoriesTitle}</h2>
-        {certCategories.length === 0 ? (
-          <p className={ui.emptyPlain}>{copy.empty.certCategories}</p>
-        ) : (
-          <form action={saveCertCategoriesAction} className={ui.form}>
-            <AdminCsrfField />
-            <p className={ui.notice}>{copy.admin.certCategoriesHelp}</p>
-            <div className={styles.categoryList}>
-              {certCategories.map((category) => (
-                <label key={category} className={ui.checkboxLabel}>
-                  <input type="hidden" name="category" value={category} />
-                  <input
-                    type="checkbox"
-                    name="visible"
-                    value={category}
-                    defaultChecked={!hiddenCategories.has(category)}
-                  />
-                  {category}
-                </label>
-              ))}
-            </div>
-            <button className={ui.button} type="submit">
-              {copy.actions.saveCertCategories}
-            </button>
-          </form>
-        )}
-      </section>
-
-      <section className={`${ui.surface} ${styles.card}`}>
-        <h2 className={ui.sectionTitle}>{copy.admin.addAnnouncement}</h2>
-        <form action={createAction} className={ui.form}>
-          <AdminCsrfField />
-          <label className={ui.label}>
-            {copy.labels.title}
-            <input className={ui.input} type="text" name="title" required />
-          </label>
-          <label className={ui.label}>
-            {copy.labels.body}
-            <textarea className={ui.textarea} name="body" rows={4} required />
-          </label>
-          <label className={ui.checkboxLabel}>
-            <input type="checkbox" name="pinned" />
-            {copy.labels.pinned}
-          </label>
-          <button className={ui.button} type="submit">
-            {copy.actions.addAnnouncement}
-          </button>
-        </form>
-      </section>
-
-      <section className={styles.list}>
-        <h2 className={ui.sectionTitle}>
-          {withCount(copy.admin.existingAnnouncements, announcements.length)}
-        </h2>
-        {announcements.length === 0 ? (
-          <p className={ui.emptyPlain}>{copy.empty.announcements}</p>
-        ) : (
-          announcements.map((announcement) => (
-            <article key={announcement.id} className={`${ui.surface} ${styles.card}`}>
-              <div className={`${ui.meta} ${styles.meta}`}>
-                {announcement.pinned ? (
-                  <span className={`${ui.badge} ${ui.badgePinned}`}>
-                    {copy.badges.pinned}
-                  </span>
-                ) : null}
-                <span className={ui.mutedDate}>
-                  {formatIso(announcement.createdAt, formatAdminDateTime)}
-                </span>
-              </div>
-              <form action={updateAction} className={ui.form}>
-                <AdminCsrfField />
-                <input type="hidden" name="id" value={announcement.id} />
-                <label className={ui.label}>
-                  {copy.labels.title}
-                  <input
-                    className={ui.input}
-                    type="text"
-                    name="title"
-                    defaultValue={announcement.title}
-                    required
-                  />
-                </label>
-                <label className={ui.label}>
-                  {copy.labels.body}
-                  <textarea
-                    className={ui.textarea}
-                    name="body"
-                    rows={4}
-                    defaultValue={announcement.body}
-                    required
-                  />
-                </label>
-                <label className={ui.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    name="pinned"
-                    defaultChecked={announcement.pinned}
-                  />
-                  {copy.labels.pinned}
-                </label>
-                <button className={ui.button} type="submit">
-                  {copy.actions.edit}
-                </button>
-              </form>
-              <form action={deleteAction} className={ui.deleteForm}>
-                <AdminCsrfField />
-                <input type="hidden" name="id" value={announcement.id} />
-                <button
-                  className={`${ui.button} ${ui.buttonDanger}`}
-                  type="submit"
-                >
-                  {copy.actions.delete}
-                </button>
-              </form>
-            </article>
-          ))
-        )}
-      </section>
-
-      <section className={`${ui.surface} ${styles.card}`}>
-        <h2 className={ui.sectionTitle}>{copy.admin.addLink}</h2>
-        <form action={createLinkAction} className={ui.form}>
-          <AdminCsrfField />
-          <label className={ui.label}>
-            {copy.labels.linkName}
-            <input className={ui.input} type="text" name="label" required />
-          </label>
-          <label className={ui.label}>
-            {copy.labels.linkUrl}
-            <input
-              className={ui.input}
-              type="url"
-              name="url"
-              placeholder="https://..."
-              required
-            />
-          </label>
-          <label className={ui.label}>
-            {copy.labels.linkDescription}
-            <input className={ui.input} type="text" name="description" />
-          </label>
-          <button className={ui.button} type="submit">
-            {copy.actions.addLink}
-          </button>
-        </form>
-      </section>
-
-      <section className={styles.list}>
-        <h2 className={ui.sectionTitle}>
-          {withCount(copy.admin.quickLinks, links.length)}
-        </h2>
-        {links.length === 0 ? (
-          <p className={ui.emptyPlain}>{copy.empty.links}</p>
-        ) : (
-          links.map((link) => (
-            <article key={link.id} className={`${ui.surface} ${styles.card}`}>
-              <form action={updateLinkAction} className={ui.form}>
-                <AdminCsrfField />
-                <input type="hidden" name="id" value={link.id} />
-                <label className={ui.label}>
-                  {copy.labels.linkName}
-                  <input
-                    className={ui.input}
-                    type="text"
-                    name="label"
-                    defaultValue={link.label}
-                    required
-                  />
-                </label>
-                <label className={ui.label}>
-                  {copy.labels.linkUrl}
-                  <input
-                    className={ui.input}
-                    type="url"
-                    name="url"
-                    defaultValue={link.url}
-                    required
-                  />
-                </label>
-                <label className={ui.label}>
-                  {copy.labels.linkDescription}
-                  <input
-                    className={ui.input}
-                    type="text"
-                    name="description"
-                    defaultValue={link.description ?? ""}
-                  />
-                </label>
-                <button className={ui.button} type="submit">
-                  {copy.actions.saveLink}
-                </button>
-              </form>
-              <form action={deleteLinkAction} className={ui.deleteForm}>
-                <AdminCsrfField />
-                <input type="hidden" name="id" value={link.id} />
-                <button
-                  className={`${ui.button} ${ui.buttonDanger}`}
-                  type="submit"
-                >
-                  {copy.actions.delete}
-                </button>
-              </form>
-            </article>
-          ))
-        )}
-      </section>
-
-      <section className={`${ui.surface} ${styles.card}`}>
-        <div className={styles.ackHeader}>
-          <h2 className={ui.sectionTitle}>
-            {withCount(copy.admin.acknowledgments, acknowledgments.length)}
-          </h2>
-          {acknowledgments.length > 0 ? (
-            <form action={clearAcknowledgmentsAction}>
-              <AdminCsrfField />
-              <button
-                className={`${ui.button} ${ui.buttonGhost}`}
-                type="submit"
-              >
-                {copy.actions.clearAcknowledgments}
-              </button>
-            </form>
-          ) : null}
-        </div>
-        {acknowledgments.length === 0 ? (
-          <p className={ui.emptyPlain}>{copy.empty.acknowledgments}</p>
-        ) : (
-          <ul className={styles.ackList}>
-            {acknowledgments.map((ack) => (
-              <li key={ack.id} className={styles.ackItem}>
-                <span className={styles.ackName}>{ack.name}</span>
-                <span className={ui.mutedDate}>
-                  {formatIso(ack.createdAt, formatAdminDateTime)}
-                </span>
-                {ack.ip ? (
-                  <span className={styles.ackIp}>{ack.ip}</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {fullAdmin && activeTab === "stats" ? (
+        <AdminStatsList
+          pageViews={pageViews}
+          acknowledgments={acknowledgments}
+          userStats={userStats}
+          homePageStats={homePageStats}
+          csrfToken={csrfToken}
+        />
+      ) : null}
     </main>
   );
 }

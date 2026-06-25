@@ -5,6 +5,9 @@
 #
 # Jeśli build nadal nie widzi Dockerfile, spróbuj w context:
 #   /share/CACHEDEV1_DATA/Container/Board
+#
+# Zalecane: buduj obraz na PC/CI (docker build), na QNAP tylko uruchom gotowy kontener.
+# Unikaj npm ci / npm run build bezpośrednio na NAS — obciąża CPU i RAM.
 
 services:
   homepage:
@@ -17,6 +20,8 @@ services:
       ADMIN_PASSWORD: "ZMIEŃ-TO-HASLO"
       OFFICE_NAME: "Urząd Gminy"
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=256"
+      # LINK_THUMBS: placeholder   # odkomentuj na słabym NAS — bez fetch miniatur
     volumes:
       - /share/Container/Board/data:/app/.data
     restart: unless-stopped

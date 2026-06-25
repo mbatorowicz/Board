@@ -5,35 +5,35 @@ import type { QuickLink } from "@/lib/types";
 import { copy } from "@/lib/copy";
 import { LIMITS } from "@/lib/security/limits";
 import {
-  addPersonalLink,
+  addPersonalLinkAction,
+  importPersonalLinksAction,
+  removePersonalLinkAction,
+} from "@/app/personal-links";
+import {
   loadPersonalLinks,
-  personalLinkErrorMessage,
-  removePersonalLink,
-  savePersonalLinks,
+  PERSONAL_LINKS_STORAGE_KEY,
 } from "@/lib/personal-links";
+import AdminDialog from "@/components/admin/AdminDialog";
 import LinkTile from "@/components/LinkTile";
 import ui from "@/styles/ui.module.css";
+import dialogStyles from "@/styles/dialog.module.css";
 import styles from "./components.module.css";
 
-function PersonalLinkRow({
-  link,
-  onRemove,
-}: {
-  link: QuickLink;
-  onRemove: (id: string) => void;
-}) {
+function PersonalLinkRow({ link }: { link: QuickLink }) {
   return (
     <div className={styles.personalLinkWrap}>
       <LinkTile link={link} className={styles.linkTilePersonal} />
       <span className={styles.personalLinkBadge}>{copy.personalLinks.badge}</span>
-      <button
-        type="button"
-        className={styles.personalLinkRemove}
-        onClick={() => onRemove(link.id)}
-        aria-label={`${copy.personalLinks.remove}: ${link.label}`}
-      >
-        ×
-      </button>
+      <form action={removePersonalLinkAction}>
+        <input type="hidden" name="id" value={link.id} />
+        <button
+          type="submit"
+          className={styles.personalLinkRemove}
+          aria-label={`${copy.personalLinks.remove}: ${link.label}`}
+        >
+          ×
+        </button>
+      </form>
     </div>
   );
 }
@@ -56,31 +56,15 @@ function AddPersonalLinkTile({ onClick }: { onClick: () => void }) {
 
 function PersonalLinkModal({
   open,
-  links,
   onClose,
-  onLinksChange,
 }: {
   open: boolean;
-  links: QuickLink[];
   onClose: () => void;
-  onLinksChange: (next: QuickLink[]) => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
 
   function resetForm(): void {
     setError(null);
@@ -94,52 +78,26 @@ function PersonalLinkModal({
     onClose();
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setError(null);
 
-    const result = addPersonalLink(links, {
-      label,
-      url,
-      description: description || undefined,
-    });
-
-    if ("error" in result) {
-      setError(personalLinkErrorMessage(result.error));
-      return;
-    }
-
-    savePersonalLinks(result.links);
-    onLinksChange(result.links);
+    const formData = new FormData();
+    formData.set("label", label);
+    formData.set("url", url);
+    formData.set("description", description);
+    await addPersonalLinkAction(formData);
     handleClose();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.personalLinkModal}
-      aria-labelledby="personal-link-modal-title"
+    <AdminDialog
+      open={open}
+      title={copy.personalLinks.add}
+      titleId="personal-link-modal-title"
       onClose={handleClose}
-      onCancel={(event) => {
-        event.preventDefault();
-        handleClose();
-      }}
     >
-      <form className={styles.personalLinkModalInner} onSubmit={handleSubmit}>
-        <div className={styles.personalLinkModalHead}>
-          <h3 id="personal-link-modal-title" className={styles.personalLinksTitle}>
-            {copy.personalLinks.add}
-          </h3>
-          <button
-            type="button"
-            className={styles.personalLinkModalClose}
-            onClick={handleClose}
-            aria-label="Zamknij"
-          >
-            ×
-          </button>
-        </div>
-
+      <form onSubmit={handleSubmit}>
         {error ? <p className={ui.error}>{error}</p> : null}
 
         <label className={ui.label}>
@@ -178,7 +136,7 @@ function PersonalLinkModal({
           />
         </label>
 
-        <div className={styles.personalLinkModalActions}>
+        <div className={dialogStyles.dialogActions}>
           <button
             type="button"
             className={`${ui.button} ${ui.buttonGhost}`}
@@ -191,39 +149,49 @@ function PersonalLinkModal({
           </button>
         </div>
       </form>
-    </dialog>
+    </AdminDialog>
   );
 }
 
 export default function QuickLinksPanel({
   globalLinks,
+  personalLinks: initialPersonalLinks,
+  isLoggedIn,
 }: {
   globalLinks: QuickLink[];
+  personalLinks: QuickLink[];
+  isLoggedIn: boolean;
 }) {
-  const [personalLinks, setPersonalLinks] = useState<QuickLink[]>([]);
-  const [ready, setReady] = useState(false);
+  const [personalLinks, setPersonalLinks] = useState(initialPersonalLinks);
   const [modalOpen, setModalOpen] = useState(false);
+  const migratedRef = useRef(false);
 
   useEffect(() => {
-    setPersonalLinks(loadPersonalLinks());
-    setReady(true);
-  }, []);
+    setPersonalLinks(initialPersonalLinks);
+  }, [initialPersonalLinks]);
 
-  function handleRemove(id: string): void {
-    const next = removePersonalLink(personalLinks, id);
-    setPersonalLinks(next);
-    savePersonalLinks(next);
-  }
+  useEffect(() => {
+    if (!isLoggedIn || migratedRef.current) return;
+    migratedRef.current = true;
 
-  const canAddMore = personalLinks.length < LIMITS.personalLinksMax;
+    const local = loadPersonalLinks();
+    if (local.length === 0) return;
+
+    void importPersonalLinksAction(local).then(() => {
+      try {
+        localStorage.removeItem(PERSONAL_LINKS_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+    });
+  }, [isLoggedIn]);
+
+  const canAddMore =
+    isLoggedIn && personalLinks.length < LIMITS.personalLinksMax;
   const isEmpty =
-    ready &&
-    globalLinks.length === 0 &&
-    personalLinks.length === 0 &&
-    !canAddMore;
+    globalLinks.length === 0 && personalLinks.length === 0 && !canAddMore;
   const hasAnyTile =
-    globalLinks.length > 0 ||
-    (ready && (personalLinks.length > 0 || canAddMore));
+    globalLinks.length > 0 || personalLinks.length > 0 || canAddMore;
 
   return (
     <>
@@ -234,27 +202,21 @@ export default function QuickLinksPanel({
           {globalLinks.map((link) => (
             <LinkTile key={link.id} link={link} />
           ))}
-          {ready
-            ? personalLinks.map((link) => (
-                <PersonalLinkRow
-                  key={link.id}
-                  link={link}
-                  onRemove={handleRemove}
-                />
-              ))
-            : null}
-          {ready && canAddMore ? (
+          {personalLinks.map((link) => (
+            <PersonalLinkRow key={link.id} link={link} />
+          ))}
+          {canAddMore ? (
             <AddPersonalLinkTile onClick={() => setModalOpen(true)} />
           ) : null}
         </div>
       ) : null}
 
-      <PersonalLinkModal
-        open={modalOpen}
-        links={personalLinks}
-        onClose={() => setModalOpen(false)}
-        onLinksChange={setPersonalLinks}
-      />
+      {isLoggedIn ? (
+        <PersonalLinkModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

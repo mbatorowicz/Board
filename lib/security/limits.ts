@@ -5,8 +5,9 @@ export const LIMITS = {
   linkLabel: 100,
   linkDescription: 500,
   url: 2048,
-  allowlistRaw: 8192,
   maxAcknowledgments: 5_000,
+  maxPageViews: 5_000,
+  pageViewDedupeMs: 15 * 60 * 1000,
   certFeedMaxBytes: 5_000_000,
   logoMaxBytes: 2_000_000,
   linkThumbMaxBytes: 2_000_000,
@@ -18,8 +19,14 @@ export const LIMITS = {
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
+export const USER_SESSION_TTL_SECONDS = 60 * 60 * 24 * 180;
+
+export const PIN_MIN_LENGTH = 4;
+export const PIN_MAX_LENGTH = 6;
+
 export const RATE_LIMITS = {
   login: { max: 5, windowMs: 15 * 60 * 1000 },
+  userLogin: { max: 5, windowMs: 15 * 60 * 1000 },
   acknowledge: { max: 10, windowMs: 60 * 60 * 1000 },
   linkThumb: { max: 30, windowMs: 60 * 1000 },
 } as const;

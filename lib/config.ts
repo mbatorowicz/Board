@@ -7,13 +7,6 @@ export const FEED_REVALIDATE_SECONDS = Number(
   process.env.FEED_REVALIDATE_SECONDS ?? 1200,
 );
 
-export function getAllowedIps(): string[] {
-  return (process.env.ALLOWED_IPS ?? "")
-    .split(",")
-    .map((ip) => ip.trim())
-    .filter(Boolean);
-}
-
 export function getAdminPassword(): string | undefined {
   return process.env.ADMIN_PASSWORD;
 }

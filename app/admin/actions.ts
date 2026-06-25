@@ -7,6 +7,7 @@ import {
   updateAnnouncement,
 } from "@/lib/announcements";
 import { clearAcknowledgments } from "@/lib/acknowledgments";
+import { clearPageViews } from "@/lib/page-views";
 import {
   addQuickLink,
   deleteQuickLink,
@@ -15,16 +16,23 @@ import {
 import { copy } from "@/lib/copy";
 import { setFlash } from "@/lib/flash";
 import { getSettings, saveSettings } from "@/lib/settings";
-import { saveAllowedIps } from "@/lib/allowlist";
 import { removeOfficeLogo, saveOfficeLogo } from "@/lib/logo";
-import { requireAuth } from "@/lib/admin-auth";
+import { requireAuth, requireEditorAuth } from "@/lib/admin-auth";
 import { verifyCsrfFromForm } from "@/lib/security/csrf";
+import { isUserRole } from "@/lib/type-guards";
 import {
-  parseAllowlistInput,
   validateAnnouncementInput,
   validateHeaderInput,
   validateLinkInput,
 } from "@/lib/security/validate";
+import {
+  createUser,
+  deleteUser,
+  resetUserPin,
+  updateUserRole,
+  validatePin,
+  validateUserName,
+} from "@/lib/users";
 
 function toAnnouncementInput(formData: FormData) {
   return validateAnnouncementInput({
@@ -42,8 +50,15 @@ function toLinkInput(formData: FormData) {
   });
 }
 
-async function guardAdminForm(formData: FormData): Promise<boolean> {
-  if (!(await requireAuth())) {
+async function guardForm(
+  formData: FormData,
+  level: "admin" | "editor",
+): Promise<boolean> {
+  const authed =
+    level === "admin"
+      ? await requireAuth()
+      : await requireEditorAuth();
+  if (!authed) {
     await setFlash({ kind: "error", message: copy.admin.unauthorized });
     return false;
   }
@@ -55,7 +70,7 @@ async function guardAdminForm(formData: FormData): Promise<boolean> {
 }
 
 export async function createAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "editor"))) {
     revalidatePath("/admin");
     return;
   }
@@ -76,7 +91,7 @@ export async function createAction(formData: FormData): Promise<void> {
 }
 
 export async function updateAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "editor"))) {
     revalidatePath("/admin");
     return;
   }
@@ -98,7 +113,7 @@ export async function updateAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "editor"))) {
     revalidatePath("/admin");
     return;
   }
@@ -114,7 +129,7 @@ export async function deleteAction(formData: FormData): Promise<void> {
 export async function clearAcknowledgmentsAction(
   formData: FormData,
 ): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -123,10 +138,20 @@ export async function clearAcknowledgmentsAction(
   revalidatePath("/admin");
 }
 
+export async function clearPageViewsAction(formData: FormData): Promise<void> {
+  if (!(await guardForm(formData, "admin"))) {
+    revalidatePath("/admin");
+    return;
+  }
+  await clearPageViews();
+  await setFlash({ kind: "notice", message: copy.admin.pageViewsCleared });
+  revalidatePath("/admin");
+}
+
 export async function saveCertCategoriesAction(
   formData: FormData,
 ): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -141,7 +166,7 @@ export async function saveCertCategoriesAction(
 }
 
 export async function createLinkAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -158,7 +183,7 @@ export async function createLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function updateLinkAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -176,7 +201,7 @@ export async function updateLinkAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteLinkAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -189,19 +214,8 @@ export async function deleteLinkAction(formData: FormData): Promise<void> {
   revalidatePath("/admin");
 }
 
-export async function saveAllowlistAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
-    revalidatePath("/admin");
-    return;
-  }
-  const raw = String(formData.get("ips") ?? "");
-  await saveAllowedIps(parseAllowlistInput(raw));
-  await setFlash({ kind: "notice", message: copy.admin.allowlistSaved });
-  revalidatePath("/admin");
-}
-
 export async function saveHeaderAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -224,7 +238,7 @@ export async function saveHeaderAction(formData: FormData): Promise<void> {
 }
 
 export async function uploadLogoAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
@@ -249,12 +263,116 @@ export async function uploadLogoAction(formData: FormData): Promise<void> {
 }
 
 export async function removeLogoAction(formData: FormData): Promise<void> {
-  if (!(await guardAdminForm(formData))) {
+  if (!(await guardForm(formData, "admin"))) {
     revalidatePath("/admin");
     return;
   }
   await removeOfficeLogo();
   await setFlash({ kind: "notice", message: copy.admin.logoRemoved });
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function createUserAction(formData: FormData): Promise<void> {
+  if (!(await guardForm(formData, "admin"))) {
+    revalidatePath("/admin");
+    return;
+  }
+
+  const name = validateUserName(String(formData.get("name") ?? ""));
+  const role = String(formData.get("role") ?? "");
+  const pin = validatePin(String(formData.get("pin") ?? ""));
+
+  if (!name || !isUserRole(role) || !pin) {
+    await setFlash({ kind: "error", message: copy.admin.userInvalid });
+    revalidatePath("/admin");
+    return;
+  }
+
+  const user = await createUser({ name, role, pin });
+  if (!user) {
+    await setFlash({ kind: "error", message: copy.admin.userExists });
+    revalidatePath("/admin");
+    return;
+  }
+
+  await setFlash({ kind: "notice", message: copy.admin.userCreated });
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function updateUserRoleAction(formData: FormData): Promise<void> {
+  if (!(await guardForm(formData, "admin"))) {
+    revalidatePath("/admin");
+    return;
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  const role = String(formData.get("role") ?? "");
+  if (!id || !isUserRole(role)) {
+    await setFlash({ kind: "error", message: copy.admin.userInvalid });
+    revalidatePath("/admin");
+    return;
+  }
+
+  const ok = await updateUserRole(id, role);
+  await setFlash({
+    kind: ok ? "notice" : "error",
+    message: ok ? copy.admin.userUpdated : copy.admin.userInvalid,
+  });
+  revalidatePath("/admin");
+}
+
+export async function resetUserPinAction(formData: FormData): Promise<void> {
+  if (!(await guardForm(formData, "admin"))) {
+    revalidatePath("/admin");
+    return;
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  const pin = validatePin(String(formData.get("pin") ?? ""));
+  if (!id || !pin) {
+    await setFlash({ kind: "error", message: copy.admin.userInvalid });
+    revalidatePath("/admin");
+    return;
+  }
+
+  const ok = await resetUserPin(id, pin);
+  await setFlash({
+    kind: ok ? "notice" : "error",
+    message: ok ? copy.admin.userPinReset : copy.admin.userInvalid,
+  });
+  revalidatePath("/admin");
+}
+
+export async function deleteUserAction(formData: FormData): Promise<void> {
+  if (!(await guardForm(formData, "admin"))) {
+    revalidatePath("/admin");
+    return;
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (id) {
+    await deleteUser(id);
+    await setFlash({ kind: "notice", message: copy.admin.userDeleted });
+  }
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+export async function saveUserLoginSettingsAction(
+  formData: FormData,
+): Promise<void> {
+  if (!(await guardForm(formData, "admin"))) {
+    revalidatePath("/admin");
+    return;
+  }
+
+  const mode = String(formData.get("userLoginMode") ?? "");
+  const userLoginMode = mode === "type" ? "type" : "select";
+  const settings = await getSettings();
+  await saveSettings({ ...settings, userLoginMode });
+  await setFlash({ kind: "notice", message: copy.admin.userLoginModeSaved });
   revalidatePath("/");
   revalidatePath("/admin");
 }

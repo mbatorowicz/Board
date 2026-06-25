@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getAdminPassword } from "@/lib/config";
 import { ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 import { createAdminSessionToken } from "@/lib/security/admin-session";
-import { getClientIpFromRequest } from "@/lib/security/client-ip";
 import { safeEqualString } from "@/lib/security/password";
 import {
   ADMIN_PASSWORD_MAX,
@@ -28,11 +27,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const ip = getClientIpFromRequest(request);
-
   if (
     !checkRateLimit(
-      rateLimitKey("login", ip),
+      rateLimitKey("login"),
       RATE_LIMITS.login.max,
       RATE_LIMITS.login.windowMs,
     )
