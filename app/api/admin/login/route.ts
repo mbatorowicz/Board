@@ -14,9 +14,10 @@ import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { CSRF_COOKIE, verifyCsrfToken } from "@/lib/security/csrf";
 import { clampText } from "@/lib/security/validate";
 import { cookieSecure } from "@/lib/cookie-secure";
+import { appUrl } from "@/lib/request-url";
 
 export async function POST(request: NextRequest) {
-  const redirectUrl = new URL("/admin", request.url);
+  const redirectUrl = appUrl(request, "/admin");
   const formData = await request.formData();
   const csrfCookie = (await cookies()).get(CSRF_COOKIE)?.value;
 

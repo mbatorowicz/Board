@@ -3,9 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 import { revokeAdminSessionToken } from "@/lib/security/admin-session";
 import { verifyCsrfFromRequest } from "@/lib/security/csrf";
+import { appUrl } from "@/lib/request-url";
 
 export async function POST(request: NextRequest) {
-  const redirectUrl = new URL("/admin", request.url);
+  const redirectUrl = appUrl(request, "/admin");
 
   if (!(await verifyCsrfFromRequest(request))) {
     redirectUrl.searchParams.set("error", "csrf");
