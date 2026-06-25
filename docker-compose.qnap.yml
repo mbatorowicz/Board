@@ -1,10 +1,15 @@
 # Container Station (QNAP) — wklej ten plik przy tworzeniu aplikacji.
-# File Station: /Container/Board — pliki projektu (w tym Dockerfile) bezpośrednio w tym folderze.
+#
+# File Station:  DataVol1 → Container → Board  (widok: /Container/Board)
+# Docker (host): /share/Container/Board        ← ta ścieżka w context i volumes
+#
+# Jeśli build nadal nie widzi Dockerfile, spróbuj w context:
+#   /share/CACHEDEV1_DATA/Container/Board
 
 services:
   homepage:
     build:
-      context: /Container/Board
+      context: /share/Container/Board
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
@@ -13,5 +18,5 @@ services:
       OFFICE_NAME: "Urząd Gminy"
       NODE_ENV: production
     volumes:
-      - /Container/Board/data:/app/.data
+      - /share/Container/Board/data:/app/.data
     restart: unless-stopped
