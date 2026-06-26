@@ -51,6 +51,9 @@ export interface User {
   lastHost?: string;
 }
 
+/** Użytkownik bez wrażliwych pól — bezpieczny do serializacji w UI. */
+export type UserPublic = Omit<User, "pinHash">;
+
 export interface SiteSettings {
   hiddenCertCategories: string[];
   headerTitle: string;

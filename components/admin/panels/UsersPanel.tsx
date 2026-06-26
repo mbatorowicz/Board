@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { User, UserRole, SiteSettings } from "@/lib/types";
+import type { UserPublic, UserRole, SiteSettings } from "@/lib/types";
 import AdminDialog from "@/components/admin/AdminDialog";
 import CompactRow from "@/components/admin/CompactRow";
 import CsrfFieldClient from "@/components/admin/CsrfFieldClient";
@@ -23,14 +23,14 @@ export default function UsersPanel({
   settings,
   csrfToken,
 }: {
-  users: User[];
+  users: UserPublic[];
   settings: SiteSettings;
   csrfToken: string;
 }) {
   const [modal, setModal] = useState<ModalKind>(null);
-  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editUser, setEditUser] = useState<UserPublic | null>(null);
 
-  function openEdit(user: User): void {
+  function openEdit(user: UserPublic): void {
     setEditUser(user);
     setModal("edit");
   }

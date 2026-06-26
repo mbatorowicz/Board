@@ -3,11 +3,12 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { copy } from "@/lib/copy";
+import { clientIpFromHeaders } from "@/lib/client-ip";
 import { setFlash } from "@/lib/flash";
 import { getSettings } from "@/lib/settings";
 import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { RATE_LIMITS } from "@/lib/security/limits";
-import { verifyUserCredentials } from "@/lib/users";
+import { verifyUserCredentials, validateUserName } from "@/lib/users";
 import {
   clearUserSessionCookie,
   createUserSessionToken,
@@ -18,9 +19,20 @@ import {
 import { cookies } from "next/headers";
 
 export async function loginUserAction(formData: FormData): Promise<void> {
+  const headerList = await headers();
+  const ip = clientIpFromHeaders(headerList);
+  const settings = await getSettings();
+
+  const userKey =
+    settings.userLoginMode === "select"
+      ? String(formData.get("userId") ?? "").trim()
+      : (validateUserName(String(formData.get("name") ?? ""))?.toLocaleLowerCase(
+          "pl",
+        ) ?? "");
+
   if (
     !checkRateLimit(
-      rateLimitKey("userLogin"),
+      rateLimitKey("userLogin", ip, userKey || "-"),
       RATE_LIMITS.userLogin.max,
       RATE_LIMITS.userLogin.windowMs,
     )
@@ -30,7 +42,6 @@ export async function loginUserAction(formData: FormData): Promise<void> {
     return;
   }
 
-  const settings = await getSettings();
   const pin = String(formData.get("pin") ?? "");
   let user = null;
 
@@ -48,7 +59,6 @@ export async function loginUserAction(formData: FormData): Promise<void> {
     return;
   }
 
-  const headerList = await headers();
   const host =
     headerList.get("x-forwarded-host")?.split(",")[0]?.trim() ??
     headerList.get("host") ??

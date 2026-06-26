@@ -1,4 +1,10 @@
-import type { QuickLink, QuickLinkInput, User, UserRole } from "@/lib/types";
+import type {
+  QuickLink,
+  QuickLinkInput,
+  User,
+  UserPublic,
+  UserRole,
+} from "@/lib/types";
 import { readJsonFile, writeJsonFile } from "@/lib/data-file";
 import { createQuickLink } from "@/lib/quick-link";
 import { hashPin, verifyPin } from "@/lib/security/pin-hash";
@@ -76,6 +82,15 @@ export function validateUserName(name: string): string | null {
 
 export async function getUsers(): Promise<User[]> {
   return readList();
+}
+
+export function toPublicUser(user: User): UserPublic {
+  const { pinHash: _pinHash, ...publicUser } = user;
+  return publicUser;
+}
+
+export async function getPublicUsers(): Promise<UserPublic[]> {
+  return (await readList()).map(toPublicUser);
 }
 
 export async function getUserById(id: string): Promise<User | null> {
@@ -258,7 +273,19 @@ export async function importUserPersonalLinks(
 ): Promise<boolean> {
   const user = await getUserById(userId);
   if (!user) return false;
-  const valid = links.filter(isQuickLink);
+
+  const valid: QuickLink[] = [];
+  for (const raw of links) {
+    if (!isQuickLink(raw)) continue;
+    const input = validateLinkInput({
+      label: raw.label,
+      url: raw.url,
+      description: raw.description,
+    });
+    if (!input) continue;
+    valid.push({ id: raw.id, ...input });
+  }
+
   const merged = [...user.personalLinks];
   for (const link of valid) {
     if (merged.length >= LIMITS.personalLinksMax) break;

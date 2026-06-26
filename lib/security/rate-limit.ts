@@ -26,6 +26,6 @@ export function checkRateLimit(
   return true;
 }
 
-export function rateLimitKey(scope: string): string {
-  return scope;
+export function rateLimitKey(scope: string, ...parts: string[]): string {
+  return [scope, ...parts.filter((part) => part.length > 0)].join(":");
 }

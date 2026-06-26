@@ -14,6 +14,7 @@ import { CSRF_COOKIE, verifyCsrfToken } from "@/lib/security/csrf";
 import { clampText } from "@/lib/security/validate";
 import { cookieSecure } from "@/lib/cookie-secure";
 import { appUrl } from "@/lib/request-url";
+import { clientIpFromHeaders } from "@/lib/client-ip";
 
 export async function POST(request: NextRequest) {
   const redirectUrl = appUrl(request, "/admin");
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   if (
     !checkRateLimit(
-      rateLimitKey("login"),
+      rateLimitKey("login", clientIpFromHeaders(request.headers)),
       RATE_LIMITS.login.max,
       RATE_LIMITS.login.windowMs,
     )

@@ -13,7 +13,7 @@ import { getSettings } from "@/lib/settings";
 import { getOfficeLogo } from "@/lib/logo";
 import { isAuthed, isEditorAuthed } from "@/lib/admin-auth";
 import { getCurrentUser } from "@/lib/user-session";
-import { getUsers } from "@/lib/users";
+import { getPublicUsers } from "@/lib/users";
 import { resolveAdminTab, resolveBoardSection } from "@/lib/admin-tabs";
 import { readFlash } from "@/lib/flash";
 import { CsrfField } from "@/components/admin/CsrfField";
@@ -140,7 +140,7 @@ export default async function AdminPage({
     needsSettingsData ? getSettings() : Promise.resolve(null),
     needsSettings ? getOfficeLogo() : Promise.resolve(null),
     headers(),
-    needsUsers ? getUsers() : Promise.resolve([]),
+    needsUsers ? getPublicUsers() : Promise.resolve([]),
   ]);
 
   const homePageStats =
