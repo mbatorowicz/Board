@@ -478,6 +478,77 @@ async function resolveFromFavicon(pageUrl: string): Promise<FetchedImage | null>
   return fetchImage(googleUrl);
 }
 
+const FAVICON_ICON_MIMES = new Set([
+  ...EMBEDDABLE_ICON_MIMES,
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+]);
+
+async function resolveFromMetaIcons(
+  html: string,
+  pageUrl: string,
+): Promise<FetchedImage | null> {
+  const candidates = [
+    ...(await extractAppleTouchIconUrls(html, pageUrl)),
+    ...(await extractSizedIconUrls(html, pageUrl)),
+  ];
+
+  for (const candidate of [...new Set(candidates)]) {
+    const image = await fetchImage(candidate);
+    if (image && FAVICON_ICON_MIMES.has(image.mime)) {
+      return image;
+    }
+  }
+
+  return null;
+}
+
+export function faviconIconPlaceholder(label: string): Buffer {
+  const initial = escapeSvgText(labelInitial(label));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="10" fill="#334155"/>
+  <text x="32" y="42" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="#e2e8f0">${initial}</text>
+</svg>`;
+  return Buffer.from(svg, "utf8");
+}
+
+export async function resolveLinkFavicon(
+  url: string,
+  label: string,
+): Promise<{ buffer: Buffer; mime: string; source: ThumbSource }> {
+  const html = await fetchPageHtml(url);
+
+  if (html) {
+    const metaIcon = await resolveFromMetaIcons(html, url);
+    if (metaIcon) {
+      return { ...metaIcon, source: "icon" };
+    }
+  }
+
+  const favicon = await resolveFromFavicon(url);
+  if (favicon && FAVICON_ICON_MIMES.has(favicon.mime)) {
+    return { ...favicon, source: "icon" };
+  }
+
+  return {
+    buffer: faviconIconPlaceholder(label),
+    mime: "image/svg+xml",
+    source: "placeholder",
+  };
+}
+
+export function placeholderFavicon(label: string): {
+  buffer: Buffer;
+  mime: string;
+  source: ThumbSource;
+} {
+  return {
+    buffer: faviconIconPlaceholder(label),
+    mime: "image/svg+xml",
+    source: "placeholder",
+  };
+}
+
 export async function resolveLinkThumbnail(
   url: string,
   label: string,

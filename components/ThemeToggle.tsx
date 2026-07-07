@@ -4,7 +4,7 @@ import { copy } from "@/lib/copy";
 import { useTheme } from "@/components/ThemeProvider";
 import styles from "./components.module.css";
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ className }: { className?: string }) {
   const { theme, toggleTheme } = useTheme();
 
   const isLight = theme === "light";
@@ -13,7 +13,7 @@ export default function ThemeToggle() {
   return (
     <button
       type="button"
-      className={styles.themeToggle}
+      className={[styles.themeToggle, className].filter(Boolean).join(" ")}
       onClick={toggleTheme}
       aria-label={label}
       title={label}

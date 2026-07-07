@@ -26,6 +26,13 @@ export const formatWeekdayDate = new Intl.DateTimeFormat(locale, {
   year: "numeric",
 });
 
+export const formatHeaderDate = new Intl.DateTimeFormat(locale, {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
 export const formatTime = new Intl.DateTimeFormat(locale, {
   hour: "2-digit",
   minute: "2-digit",

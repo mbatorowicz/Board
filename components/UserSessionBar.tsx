@@ -12,24 +12,33 @@ export default function UserSessionBar({
   currentUser,
   loginMode,
   selectableUsers,
+  toolbar = false,
 }: {
   currentUser: User | null;
   loginMode: UserLoginMode;
   selectableUsers: Pick<User, "id" | "name">[];
+  toolbar?: boolean;
 }) {
   const [loginOpen, setLoginOpen] = useState(false);
+  const loginBtnClass = toolbar
+    ? `${ui.button} ${styles.headerToolbarButton}`
+    : `${ui.button} ${styles.userSessionBtn}`;
+  const logoutBtnClass = toolbar
+    ? `${ui.button} ${ui.buttonGhost} ${styles.headerToolbarButton} ${styles.headerToolbarButtonGhost}`
+    : `${ui.button} ${ui.buttonGhost} ${styles.userSessionBtn}`;
 
   if (currentUser) {
     return (
-      <div className={styles.userSession}>
+      <div
+        className={
+          toolbar ? styles.userSessionToolbar : styles.userSession
+        }
+      >
         <span className={styles.userSessionName}>
           {copy.userSession.loggedInAs(currentUser.name)}
         </span>
         <form action={logoutUserAction}>
-          <button
-            className={`${ui.button} ${ui.buttonGhost} ${styles.userSessionBtn}`}
-            type="submit"
-          >
+          <button className={logoutBtnClass} type="submit">
             {copy.actions.logout}
           </button>
         </form>
@@ -41,7 +50,7 @@ export default function UserSessionBar({
     <>
       <button
         type="button"
-        className={`${ui.button} ${styles.userSessionBtn}`}
+        className={loginBtnClass}
         onClick={() => setLoginOpen(true)}
       >
         {copy.actions.login}

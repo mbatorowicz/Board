@@ -4,6 +4,7 @@ import Clock from "@/components/Clock";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserSessionBar from "@/components/UserSessionBar";
 import type { User, UserLoginMode } from "@/lib/types";
+import componentStyles from "./components.module.css";
 import styles from "@/app/page.module.css";
 
 export default function PageHeader({
@@ -30,7 +31,7 @@ export default function PageHeader({
             src={officeLogoUrl(logo.updatedAt)}
             alt={`Logo ${title}`}
             width={200}
-            height={56}
+            height={44}
           />
         ) : null}
         <div className={styles.headerText}>
@@ -43,9 +44,10 @@ export default function PageHeader({
           currentUser={currentUser}
           loginMode={loginMode}
           selectableUsers={selectableUsers}
+          toolbar
         />
-        <ThemeToggle />
-        <Clock />
+        <ThemeToggle className={componentStyles.headerToolbarTheme} />
+        <Clock compact />
       </div>
     </header>
   );

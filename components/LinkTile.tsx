@@ -13,7 +13,7 @@ export default function LinkTile({
   className?: string;
 }) {
   const [iconFailed, setIconFailed] = useState(false);
-  const faviconSrc = linkFaviconUrl(link.url);
+  const faviconSrc = linkFaviconUrl(link);
   const showFallback = iconFailed || !faviconSrc;
 
   return (
@@ -32,8 +32,8 @@ export default function LinkTile({
           <img
             src={faviconSrc}
             alt=""
-            width={28}
-            height={28}
+            width={24}
+            height={24}
             loading="lazy"
             decoding="async"
             className={styles.linkTileIconImage}

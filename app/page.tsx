@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import PageHeader from "@/components/PageHeader";
 import CertCard from "@/components/CertCard";
 import AnnouncementCard from "@/components/AnnouncementCard";
-import QuickLinksPanel from "@/components/QuickLinksPanel";
+import QuickLinksSection from "@/components/QuickLinksSection";
 import AcknowledgeBox from "@/components/AcknowledgeBox";
 import { getAdvisories } from "@/lib/cert";
 import { getAnnouncements } from "@/lib/announcements";
@@ -83,21 +83,11 @@ export default async function Home() {
         selectableUsers={selectableUsers}
       />
 
-      <section
-        className={`${ui.panel} ${styles.linksBar}`}
-        aria-labelledby="links-heading"
-      >
-        <div className={ui.panelHead}>
-          <h2 id="links-heading" className={ui.panelTitle}>
-            {copy.sections.quickLinks}
-          </h2>
-        </div>
-        <QuickLinksPanel
-          globalLinks={quickLinks}
-          personalLinks={personalLinks}
-          isLoggedIn={Boolean(currentUser)}
-        />
-      </section>
+      <QuickLinksSection
+        globalLinks={quickLinks}
+        personalLinks={personalLinks}
+        isLoggedIn={Boolean(currentUser)}
+      />
 
       <main className={styles.main}>
         <section className={ui.panel} aria-labelledby="cert-heading">

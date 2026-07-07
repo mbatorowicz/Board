@@ -10,6 +10,10 @@ export const copy = {
     announcements: "Ogłoszenia wewnętrzne",
     acknowledge: "Potwierdzenie zapoznania się",
   },
+  quickLinksPanel: {
+    collapse: "Zwiń linki",
+    expand: "Rozwiń linki",
+  },
   empty: {
     cert: "Brak aktualnych ostrzeżeń.",
     announcements: "Brak ogłoszeń.",
