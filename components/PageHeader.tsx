@@ -25,6 +25,7 @@ export default function PageHeader({
     <header className={styles.header}>
       <div className={styles.headerBrand}>
         {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- logo z dynamicznej trasy API (także SVG); next/image niepotrzebne na QNAP
           <img
             className={styles.logo}
             src={officeLogoUrl(logo.updatedAt)}
@@ -71,6 +72,7 @@ export function HeaderBrandPreview({
   return (
     <div className={className}>
       {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- logo z dynamicznej trasy API (także SVG); next/image niepotrzebne na QNAP
         <img
           className={logoClassName}
           src={officeLogoUrl(logo.updatedAt)}

@@ -10,7 +10,7 @@ import { RATE_LIMITS } from "@/lib/security/limits";
 import { cookieSecure } from "@/lib/cookie-secure";
 import { getCurrentUser } from "@/lib/user-session";
 
-export async function acknowledgeAction(formData: FormData): Promise<void> {
+export async function acknowledgeAction(): Promise<void> {
   const user = await getCurrentUser();
   if (!user) {
     await setFlash({ kind: "error", message: copy.acknowledge.loginRequired });

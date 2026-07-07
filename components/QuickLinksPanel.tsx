@@ -155,20 +155,15 @@ function PersonalLinkModal({
 
 export default function QuickLinksPanel({
   globalLinks,
-  personalLinks: initialPersonalLinks,
+  personalLinks,
   isLoggedIn,
 }: {
   globalLinks: QuickLink[];
   personalLinks: QuickLink[];
   isLoggedIn: boolean;
 }) {
-  const [personalLinks, setPersonalLinks] = useState(initialPersonalLinks);
   const [modalOpen, setModalOpen] = useState(false);
   const migratedRef = useRef(false);
-
-  useEffect(() => {
-    setPersonalLinks(initialPersonalLinks);
-  }, [initialPersonalLinks]);
 
   useEffect(() => {
     if (!isLoggedIn || migratedRef.current) return;
