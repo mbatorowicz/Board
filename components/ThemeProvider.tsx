@@ -4,15 +4,14 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
-  applyTheme,
-  DEFAULT_THEME,
-  persistTheme,
-  readStoredTheme,
+  getServerThemeSnapshot,
+  getThemeSnapshot,
+  setTheme as commitTheme,
+  subscribeTheme,
   type Theme,
 } from "@/lib/theme";
 
@@ -24,31 +23,19 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function commitTheme(next: Theme): void {
-  applyTheme(next);
-  persistTheme(next);
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
-
-  useEffect(() => {
-    const stored = readStoredTheme();
-    setThemeState(stored);
-    applyTheme(stored);
-  }, []);
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    getThemeSnapshot,
+    getServerThemeSnapshot,
+  );
 
   const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
     commitTheme(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
-      const next = current === "dark" ? "light" : "dark";
-      commitTheme(next);
-      return next;
-    });
+    commitTheme(getThemeSnapshot() === "dark" ? "light" : "dark");
   }, []);
 
   return (

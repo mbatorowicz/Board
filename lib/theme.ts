@@ -34,6 +34,38 @@ export function persistTheme(theme: Theme): void {
   }
 }
 
+const themeListeners = new Set<() => void>();
+
+// Mechanizm dla useSyncExternalStore: nasłuch zmian motywu (inne karty przez
+// zdarzenie `storage`, bieżąca karta przez ręczne powiadomienie w setTheme).
+export function subscribeTheme(listener: () => void): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+  themeListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    themeListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+export function getThemeSnapshot(): Theme {
+  return readStoredTheme();
+}
+
+export function getServerThemeSnapshot(): Theme {
+  return DEFAULT_THEME;
+}
+
+export function setTheme(theme: Theme): void {
+  applyTheme(theme);
+  persistTheme(theme);
+  for (const listener of themeListeners) {
+    listener();
+  }
+}
+
 export function themeInitScript(): string {
   return `(function(){try{var t=localStorage.getItem("${THEME_STORAGE_KEY}");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}})();`;
 }

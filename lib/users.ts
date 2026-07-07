@@ -85,7 +85,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export function toPublicUser(user: User): UserPublic {
-  const { pinHash: _pinHash, ...publicUser } = user;
+  const { pinHash, ...publicUser } = user;
   return publicUser;
 }
 

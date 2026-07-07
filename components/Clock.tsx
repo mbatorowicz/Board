@@ -1,20 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { copy } from "@/lib/copy";
 import { formatTime, formatWeekdayDate } from "@/lib/format";
 import styles from "./components.module.css";
 
+function subscribe(callback: () => void): () => void {
+  const interval = setInterval(callback, 1000);
+  return () => clearInterval(interval);
+}
+
+function getSnapshot(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+// Zegar to wartość dostępna wyłącznie po stronie klienta — na serwerze
+// zwracamy null, aby uniknąć niezgodności hydracji.
+function getServerSnapshot(): number | null {
+  return null;
+}
+
 export default function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
+  const tick = useSyncExternalStore<number | null>(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
-  useEffect(() => {
-    setNow(new Date());
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!now) {
+  if (tick === null) {
     return (
       <div className={styles.clock} aria-hidden="true">
         <span className={styles.clockTime}>--:--:--</span>
@@ -22,6 +35,8 @@ export default function Clock() {
       </div>
     );
   }
+
+  const now = new Date(tick * 1000);
 
   return (
     <div

@@ -17,6 +17,7 @@ export default function LinkTile({
       rel="noopener noreferrer"
     >
       <span className={styles.linkTileMedia} aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element -- miniatura z dynamicznej trasy proxy; next/image pomijamy, by nie obciążać CPU na QNAP */}
         <img
           src={linkThumbUrl(link)}
           alt=""
