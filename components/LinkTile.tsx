@@ -1,5 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import type { QuickLink } from "@/lib/types";
-import { linkThumbUrl } from "@/lib/link-thumb-url";
+import { linkFaviconUrl, linkLabelInitial } from "@/lib/link-favicon-url";
 import styles from "./components.module.css";
 
 export default function LinkTile({
@@ -9,6 +12,10 @@ export default function LinkTile({
   link: QuickLink;
   className?: string;
 }) {
+  const [iconFailed, setIconFailed] = useState(false);
+  const faviconSrc = linkFaviconUrl(link.url);
+  const showFallback = iconFailed || !faviconSrc;
+
   return (
     <a
       className={[styles.linkTile, className].filter(Boolean).join(" ")}
@@ -16,15 +23,23 @@ export default function LinkTile({
       target="_blank"
       rel="noopener noreferrer"
     >
-      <span className={styles.linkTileMedia} aria-hidden="true">
-        <img
-          src={linkThumbUrl(link)}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className={styles.linkTileImage}
-        />
-        <span className={styles.linkTileOverlay} />
+      <span className={styles.linkTileIcon} aria-hidden="true">
+        {showFallback ? (
+          <span className={styles.linkTileIconFallback}>
+            {linkLabelInitial(link.label)}
+          </span>
+        ) : (
+          <img
+            src={faviconSrc}
+            alt=""
+            width={28}
+            height={28}
+            loading="lazy"
+            decoding="async"
+            className={styles.linkTileIconImage}
+            onError={() => setIconFailed(true)}
+          />
+        )}
       </span>
       <span className={styles.linkTileBody}>
         <span className={styles.linkLabel}>
