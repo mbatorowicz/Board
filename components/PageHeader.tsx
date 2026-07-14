@@ -2,8 +2,6 @@ import { OFFICE_NAME } from "@/lib/config";
 import { officeLogoUrl, type OfficeLogo } from "@/lib/logo";
 import Clock from "@/components/Clock";
 import ThemeToggle from "@/components/ThemeToggle";
-import UserSessionBar from "@/components/UserSessionBar";
-import type { User, UserLoginMode } from "@/lib/types";
 import componentStyles from "./components.module.css";
 import styles from "@/app/page.module.css";
 
@@ -11,16 +9,10 @@ export default function PageHeader({
   logo,
   title,
   subtitle,
-  currentUser,
-  loginMode,
-  selectableUsers,
 }: {
   logo: OfficeLogo | null;
   title: string;
   subtitle: string;
-  currentUser: User | null;
-  loginMode: UserLoginMode;
-  selectableUsers: Pick<User, "id" | "name">[];
 }) {
   return (
     <header className={styles.header}>
@@ -40,12 +32,6 @@ export default function PageHeader({
         </div>
       </div>
       <div className={styles.headerActions}>
-        <UserSessionBar
-          currentUser={currentUser}
-          loginMode={loginMode}
-          selectableUsers={selectableUsers}
-          toolbar
-        />
         <ThemeToggle className={componentStyles.headerToolbarTheme} />
         <Clock compact />
       </div>

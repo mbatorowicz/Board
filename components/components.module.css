@@ -27,6 +27,7 @@
   text-transform: capitalize;
   line-height: 1.2;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .itemCard {
@@ -110,6 +111,20 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 8px;
+}
+
+.linksGrid > * {
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.editableLinkDragGhost {
+  opacity: 1 !important;
+  transform: scale(1.02) rotate(-0.4deg) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border)) !important;
+  box-shadow: 0 14px 28px -12px color-mix(in srgb, var(--accent) 28%, transparent) !important;
+  background: var(--bg-elevated) !important;
 }
 
 .linksPanelBody {
@@ -407,6 +422,247 @@
 
 .personalLinkWrap {
   position: relative;
+}
+
+.editableLinkWrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .editableLinkWrap:hover:not(.editableLinkDragging) {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    box-shadow: var(--shadow);
+  }
+}
+
+.editableLinkWrap .linkTileEditable {
+  flex: 1;
+  min-width: 0;
+  padding-right: 30px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .editableLinkWrap .linkTileEditable:hover {
+    transform: none;
+    border-color: transparent;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+.editableLinkConfirming .linkTileEditable {
+  padding-right: 12px;
+}
+
+.editableLinkDragging {
+  opacity: 0.38;
+  transform: scale(0.985);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
+}
+
+.editableLinkConfirming {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+}
+
+.editableLinkActions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 12px);
+}
+
+.editableLinkActionsOpen {
+  position: static;
+  flex: none;
+  align-self: center;
+  padding: 0 8px 0 4px;
+}
+
+.editableLinkConfirming .editableLinkActions {
+  position: static;
+  flex: none;
+  align-self: center;
+  padding: 0 8px 0 4px;
+}
+
+.editableLinkConfirmText {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.linkRemoveTrigger,
+.linkRemoveConfirm,
+.linkRemoveCancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.linkRemoveTrigger {
+  appearance: none;
+  -webkit-appearance: none;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.38;
+}
+
+.linkRemoveTrigger:focus,
+.linkRemoveTrigger:focus-visible {
+  outline: none;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .editableLinkWrap:hover .linkRemoveTrigger {
+    opacity: 0.82;
+  }
+
+  .linkRemoveTrigger:hover {
+    color: var(--danger);
+    opacity: 1;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.editableLinkConfirming .linkRemoveTrigger,
+.editableLinkActionsOpen .linkRemoveTrigger {
+  opacity: 1;
+}
+
+.linkRemoveConfirm,
+.linkRemoveCancel {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.linkRemoveConfirm {
+  color: #fff;
+  border-color: var(--danger);
+  background: var(--danger);
+  opacity: 1;
+}
+
+.linkRemoveCancel {
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--bg-card);
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .linkRemoveCancel:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+}
+
+.linkDragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  align-self: stretch;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.45;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.linkDragHandleIcon {
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: -0.08em;
+  transform: scale(0.92);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .editableLinkWrap:hover .linkDragHandle {
+    opacity: 0.9;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+  }
+
+  .linkDragHandle:hover {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
+}
+
+.linkDragHandle:active {
+  cursor: grabbing;
+}
+
+.editableLinkWrap.editableLinkDragging .linkDragHandle {
+  cursor: grabbing;
+}
+
+.linkTileEditable {
+  border-color: var(--border);
 }
 
 .linkTilePersonal {

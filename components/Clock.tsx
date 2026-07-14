@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { copy } from "@/lib/copy";
 import { formatHeaderDate, formatTime, formatWeekdayDate } from "@/lib/format";
 import styles from "./components.module.css";
 
-export default function Clock({ compact = false }: { compact?: boolean }) {
-  const [now, setNow] = useState<Date | null>(null);
+function formatClockDate(now: Date, compact: boolean): string {
+  return compact
+    ? formatHeaderDate.format(now)
+    : formatWeekdayDate.format(now);
+}
 
-  useEffect(() => {
-    setNow(new Date());
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
+export default function Clock({ compact = false }: { compact?: boolean }) {
+  const timeRef = useRef<HTMLSpanElement>(null);
+  const dateRef = useRef<HTMLSpanElement>(null);
+  const initialNow = new Date();
 
   const clockClass = [
     styles.clock,
@@ -21,23 +23,21 @@ export default function Clock({ compact = false }: { compact?: boolean }) {
     .filter(Boolean)
     .join(" ");
 
-  if (!now) {
-    return (
-      <div className={clockClass} aria-hidden="true">
-        <span className={styles.clockTime}>--:--:--</span>
-        {compact ? (
-          <>
-            <span className={styles.headerToolbarClockSep} aria-hidden="true">
-              ·
-            </span>
-            <span className={styles.clockDate}>{copy.clock.loading}</span>
-          </>
-        ) : (
-          <span className={styles.clockDate}>{copy.clock.loading}</span>
-        )}
-      </div>
-    );
-  }
+  useEffect(() => {
+    function tick(): void {
+      const now = new Date();
+      if (timeRef.current) {
+        timeRef.current.textContent = formatTime.format(now);
+      }
+      if (dateRef.current) {
+        dateRef.current.textContent = formatClockDate(now, compact);
+      }
+    }
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [compact]);
 
   return (
     <div
@@ -46,19 +46,33 @@ export default function Clock({ compact = false }: { compact?: boolean }) {
       aria-live="off"
       aria-label={copy.clock.ariaLabel}
     >
-      <span className={styles.clockTime}>{formatTime.format(now)}</span>
+      <span
+        ref={timeRef}
+        className={styles.clockTime}
+        suppressHydrationWarning
+      >
+        {formatTime.format(initialNow)}
+      </span>
       {compact ? (
         <>
           <span className={styles.headerToolbarClockSep} aria-hidden="true">
             ·
           </span>
-          <span className={styles.clockDate}>
-            {formatHeaderDate.format(now)}
+          <span
+            ref={dateRef}
+            className={styles.clockDate}
+            suppressHydrationWarning
+          >
+            {formatHeaderDate.format(initialNow)}
           </span>
         </>
       ) : (
-        <span className={styles.clockDate}>
-          {formatWeekdayDate.format(now)}
+        <span
+          ref={dateRef}
+          className={styles.clockDate}
+          suppressHydrationWarning
+        >
+          {formatWeekdayDate.format(initialNow)}
         </span>
       )}
     </div>

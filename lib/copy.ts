@@ -168,9 +168,8 @@ export const copy = {
   },
   acknowledge: {
     intro:
-      "Potwierdzam zapoznanie z ostrzeżeniami CERT oraz treścią strony głównej.",
-    loginRequired: "Zaloguj się w nagłówku, aby potwierdzić zapoznanie.",
-    thanks: (name: string) => `Dziękujemy, ${name}.`,
+      "Potwierdzam zapoznanie z ostrzeżeniami CERT oraz treścią strony głównej na tym komputerze.",
+    thanks: (label: string) => `Dziękujemy. Potwierdzenie zapisane dla: ${label}.`,
     confirmedAt: (date: string) => `Potwierdzenie zapisane: ${date}.`,
     invalidName: "Podaj imię i nazwisko (min. 1 znak).",
     rateLimited: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
@@ -194,6 +193,17 @@ export const copy = {
     limitReached: (max: number) =>
       `Możesz dodać maksymalnie ${max} własnych linków.`,
     loginRequired: "Zaloguj się, aby dodać własne linki.",
+  },
+  deviceLinks: {
+    add: "Dodaj link",
+    remove: "Usuń link",
+    removeConfirm: "Usuń",
+    removeCancel: "Anuluj",
+    removePrompt: "Na pewno usunąć ten link?",
+    dragHandle: "Przenieś link",
+    invalidUrl: "Adres URL musi zaczynać się od https://",
+    limitReached: (max: number) =>
+      `Możesz dodać maksymalnie ${max} linków na tym komputerze.`,
   },
 } as const;
 

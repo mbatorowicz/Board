@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { FLASH_COOKIE, FLASH_HEADER, encodeFlashHeaderValue } from "@/lib/flash";
 import { CSRF_COOKIE, CSRF_HEADER, isValidCsrfToken } from "@/lib/security/csrf";
+import {
+  DEVICE_ID_COOKIE,
+  DEVICE_ID_HEADER,
+  deviceIdCookieOptions,
+  generateDeviceId,
+  isValidDeviceId,
+} from "@/lib/device-id";
 
 function generateCsrfToken(): string {
   const bytes = new Uint8Array(32);
@@ -30,6 +37,14 @@ export function nextWithRequestContext(
 ): NextResponse {
   const requestHeaders = new Headers(request.headers);
 
+  let deviceId = request.cookies.get(DEVICE_ID_COOKIE)?.value;
+  let newDeviceId: string | undefined;
+  if (!isValidDeviceId(deviceId)) {
+    newDeviceId = generateDeviceId();
+    deviceId = newDeviceId;
+  }
+  requestHeaders.set(DEVICE_ID_HEADER, deviceId);
+
   const flashRaw = request.cookies.get(FLASH_COOKIE)?.value;
   if (flashRaw) {
     requestHeaders.set(FLASH_HEADER, encodeFlashHeaderValue(flashRaw));
@@ -48,6 +63,10 @@ export function nextWithRequestContext(
 
   if (flashRaw) {
     response.cookies.delete(FLASH_COOKIE);
+  }
+
+  if (newDeviceId) {
+    response.cookies.set(DEVICE_ID_COOKIE, newDeviceId, deviceIdCookieOptions());
   }
 
   if (adminCsrf && csrfToken) {

@@ -14,6 +14,9 @@ export const config = {
 };
 
 function maybeRecordPageView(request: NextRequest): void {
+  if (process.env.NODE_ENV === "development") {
+    return;
+  }
   if (process.env.NEXT_PHASE === "phase-production-build") {
     return;
   }

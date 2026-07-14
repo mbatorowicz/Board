@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import PageHeader from "@/components/PageHeader";
 import CertCard from "@/components/CertCard";
 import AnnouncementCard from "@/components/AnnouncementCard";
@@ -12,8 +12,8 @@ import { getSettings } from "@/lib/settings";
 import { getOfficeLogo } from "@/lib/logo";
 import { readFlash } from "@/lib/flash";
 import { copy } from "@/lib/copy";
-import { getCurrentUser } from "@/lib/user-session";
-import { getUserPersonalLinks, getUsers } from "@/lib/users";
+import { getDeviceId } from "@/lib/device-id";
+import { getOrInitDeviceLinks } from "@/lib/device-links";
 import ui from "@/styles/ui.module.css";
 import styles from "./page.module.css";
 
@@ -21,11 +21,22 @@ export const dynamic = "force-dynamic";
 
 function readConfirmation(
   value: string | undefined,
+  deviceId: string | null,
 ): { name: string; at: string } | null {
-  if (!value) return null;
+  if (!value || !deviceId) {
+    return null;
+  }
   try {
-    const parsed = JSON.parse(value) as { name?: unknown; at?: unknown };
-    if (typeof parsed.name === "string" && typeof parsed.at === "string") {
+    const parsed = JSON.parse(value) as {
+      deviceId?: unknown;
+      name?: unknown;
+      at?: unknown;
+    };
+    if (
+      parsed.deviceId === deviceId &&
+      typeof parsed.at === "string" &&
+      typeof parsed.name === "string"
+    ) {
       return { name: parsed.name, at: parsed.at };
     }
   } catch {
@@ -35,7 +46,9 @@ function readConfirmation(
 }
 
 export default async function Home() {
-  const currentUser = await getCurrentUser();
+  const deviceId = await getDeviceId();
+  const headerStore = await headers();
+  const host = headerStore.get("host") ?? undefined;
 
   const [
     allAdvisories,
@@ -44,8 +57,7 @@ export default async function Home() {
     settings,
     logo,
     cookieStore,
-    users,
-    personalLinks,
+    deviceLinks,
   ] = await Promise.all([
     getAdvisories(),
     getAnnouncements(),
@@ -53,8 +65,7 @@ export default async function Home() {
     getSettings(),
     getOfficeLogo(),
     cookies(),
-    getUsers(),
-    currentUser ? getUserPersonalLinks(currentUser.id) : Promise.resolve([]),
+    deviceId ? getOrInitDeviceLinks(deviceId, { host }) : Promise.resolve([]),
   ]);
 
   const hidden = new Set(settings.hiddenCertCategories);
@@ -62,15 +73,12 @@ export default async function Home() {
     (advisory) => !hidden.has(advisory.category),
   );
 
-  const ackCookie = readConfirmation(cookieStore.get(ACK_COOKIE)?.value);
-  const confirmation =
-    currentUser && ackCookie?.name === currentUser.name ? ackCookie : null;
+  const ackCookie = readConfirmation(
+    cookieStore.get(ACK_COOKIE)?.value,
+    deviceId,
+  );
+  const confirmation = ackCookie;
   const flash = await readFlash();
-
-  const selectableUsers =
-    settings.userLoginMode === "select"
-      ? users.map((user) => ({ id: user.id, name: user.name }))
-      : [];
 
   return (
     <div id="page-content" className={styles.page}>
@@ -78,15 +86,12 @@ export default async function Home() {
         logo={logo}
         title={settings.headerTitle}
         subtitle={settings.headerSubtitle}
-        currentUser={currentUser}
-        loginMode={settings.userLoginMode}
-        selectableUsers={selectableUsers}
       />
 
       <QuickLinksSection
         globalLinks={quickLinks}
-        personalLinks={personalLinks}
-        isLoggedIn={Boolean(currentUser)}
+        editableLinks={deviceLinks}
+        mode="device"
       />
 
       <main className={styles.main}>
@@ -138,11 +143,7 @@ export default async function Home() {
             {copy.sections.acknowledge}
           </h2>
         </div>
-        <AcknowledgeBox
-          confirmation={confirmation}
-          flash={flash}
-          currentUser={currentUser}
-        />
+        <AcknowledgeBox confirmation={confirmation} flash={flash} />
       </section>
     </div>
   );

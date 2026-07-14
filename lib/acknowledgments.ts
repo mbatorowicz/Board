@@ -35,6 +35,7 @@ export async function addAcknowledgment(
     id: crypto.randomUUID(),
     name: input.name,
     createdAt: new Date().toISOString(),
+    ...(input.deviceId ? { deviceId: input.deviceId } : {}),
     ...(input.ip ? { ip: input.ip } : {}),
   };
   await writeList([acknowledgment, ...list]);

@@ -65,11 +65,13 @@ export interface Acknowledgment {
   id: string;
   name: string;
   createdAt: string;
+  deviceId?: string;
   ip?: string;
 }
 
 export interface AcknowledgmentInput {
   name: string;
+  deviceId?: string;
   ip?: string;
 }
 

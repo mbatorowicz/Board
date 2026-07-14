@@ -34,7 +34,7 @@ export default function RootLayout({
     <html
       lang="pl"
       className={`${geistSans.variable} ${geistMono.variable}`}
-      data-theme="dark"
+      data-theme="light"
       suppressHydrationWarning
     >
       <head>

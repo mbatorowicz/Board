@@ -1,51 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import type { QuickLink } from "@/lib/types";
 import { copy } from "@/lib/copy";
 import {
   persistQuickLinksCollapsed,
   readQuickLinksCollapsed,
+  subscribeQuickLinksCollapsed,
 } from "@/lib/quick-links-panel";
 import QuickLinksPanel from "@/components/QuickLinksPanel";
 import ui from "@/styles/ui.module.css";
 import pageStyles from "@/app/page.module.css";
 import styles from "./components.module.css";
 
+type LinksMode = "device" | "user";
+
 export default function QuickLinksSection({
   globalLinks,
-  personalLinks,
-  isLoggedIn,
+  editableLinks,
+  mode,
 }: {
   globalLinks: QuickLink[];
-  personalLinks: QuickLink[];
-  isLoggedIn: boolean;
+  editableLinks: QuickLink[];
+  mode: LinksMode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setCollapsed(readQuickLinksCollapsed());
-    setHydrated(true);
-  }, []);
+  const collapsed = useSyncExternalStore(
+    subscribeQuickLinksCollapsed,
+    readQuickLinksCollapsed,
+    () => false,
+  );
 
   function toggleCollapsed(): void {
-    setCollapsed((current) => {
-      const next = !current;
-      persistQuickLinksCollapsed(next);
-      return next;
-    });
+    persistQuickLinksCollapsed(!collapsed);
   }
 
-  const linkCount = globalLinks.length + personalLinks.length;
-  const expanded = hydrated ? !collapsed : true;
+  const linkCount =
+    mode === "device"
+      ? editableLinks.length
+      : globalLinks.length + editableLinks.length;
+  const expanded = !collapsed;
 
   return (
     <section
       className={[
         ui.panel,
         pageStyles.linksBar,
-        collapsed && hydrated ? styles.linksPanelCollapsed : "",
+        collapsed ? styles.linksPanelCollapsed : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -54,14 +54,14 @@ export default function QuickLinksSection({
       <div
         className={[
           ui.panelHead,
-          collapsed && hydrated ? styles.linksPanelHeadCollapsed : "",
+          collapsed ? styles.linksPanelHeadCollapsed : "",
         ]
           .filter(Boolean)
           .join(" ")}
       >
         <h2 id="links-heading" className={ui.panelTitle}>
           {copy.sections.quickLinks}
-          {collapsed && hydrated && linkCount > 0 ? (
+          {collapsed && linkCount > 0 ? (
             <span className={styles.linksPanelCount}>{linkCount}</span>
           ) : null}
         </h2>
@@ -86,8 +86,8 @@ export default function QuickLinksSection({
         <div id="links-panel-body" className={styles.linksPanelBody}>
           <QuickLinksPanel
             globalLinks={globalLinks}
-            personalLinks={personalLinks}
-            isLoggedIn={isLoggedIn}
+            editableLinks={editableLinks}
+            mode={mode}
           />
         </div>
       ) : null}

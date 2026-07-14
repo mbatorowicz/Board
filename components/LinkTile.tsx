@@ -8,9 +8,11 @@ import styles from "./components.module.css";
 export default function LinkTile({
   link,
   className,
+  showArrow = true,
 }: {
   link: QuickLink;
   className?: string;
+  showArrow?: boolean;
 }) {
   const [iconFailed, setIconFailed] = useState(false);
   const faviconSrc = linkFaviconUrl(link);
@@ -44,9 +46,11 @@ export default function LinkTile({
       <span className={styles.linkTileBody}>
         <span className={styles.linkLabel}>
           {link.label}
-          <span className={styles.linkArrow} aria-hidden="true">
-            ↗
-          </span>
+          {showArrow ? (
+            <span className={styles.linkArrow} aria-hidden="true">
+              ↗
+            </span>
+          ) : null}
         </span>
         {link.description ? (
           <span className={styles.linkDescription}>{link.description}</span>

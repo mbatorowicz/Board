@@ -41,6 +41,16 @@ function securityHeaders() {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  turbopack: {},
+  webpack(config, { dev }) {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: ["**/.data/**", "**/node_modules/**"],
+      };
+    }
+    return config;
+  },
   async headers() {
     return [
       {
