@@ -1,0 +1,6 @@
+{
+  "HomepageLocation": "http://192.168.1.50:3000",
+  "ShowHomeButton": true,
+  "RestoreOnStartup": 4,
+  "RestoreOnStartupURLs": ["http://192.168.1.50:3000"]
+}
