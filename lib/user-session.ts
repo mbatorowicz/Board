@@ -1,7 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
-import type { NextRequest } from "next/server";
-import { USER_SESSION_TTL_SECONDS } from "@/lib/security/limits";
+import type { NextRequest, NextResponse } from "next/server";
+import {
+  USER_SESSION_ROTATE_MS,
+  USER_SESSION_TOUCH_MS,
+  USER_SESSION_TTL_SECONDS,
+} from "@/lib/security/limits";
 import {
   createSessionStore,
   hashSessionToken,
@@ -39,6 +43,16 @@ function isStoredSession(item: unknown): item is StoredSession {
 }
 
 const store = createSessionStore(FILE, isStoredSession);
+
+function sessionCookieOptions(maxAge = USER_SESSION_TTL_SECONDS) {
+  return {
+    httpOnly: true,
+    sameSite: "strict" as const,
+    secure: cookieSecure(),
+    path: "/",
+    maxAge,
+  };
+}
 
 export async function createUserSessionToken(
   userId: string,
@@ -107,13 +121,7 @@ export async function setUserSessionCookie(
   token: string,
 ): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(USER_SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: cookieSecure(),
-    path: "/",
-    maxAge: USER_SESSION_TTL_SECONDS,
-  });
+  cookieStore.set(USER_SESSION_COOKIE, token, sessionCookieOptions());
 }
 
 export async function clearUserSessionCookie(): Promise<void> {
@@ -138,4 +146,64 @@ export async function getUserFromRequest(
   const user = await getUserById(session.userId);
   if (!user) return null;
   return { userId: user.id, userName: user.name };
+}
+
+export async function maintainUserSessionCookie(
+  request: NextRequest,
+  response: NextResponse,
+): Promise<void> {
+  const token = request.cookies.get(USER_SESSION_COOKIE)?.value;
+  if (!token) return;
+
+  const tokenHash = hashSessionToken(token);
+  const sessions = await store.readSessions();
+  const pruned = pruneExpiredSessions(sessions);
+  const index = pruned.findIndex((session) =>
+    matchesSessionHash(session.tokenHash, tokenHash),
+  );
+  if (index === -1) {
+    await store.persistPrunedIfNeeded(sessions, pruned);
+    return;
+  }
+
+  const session = pruned[index]!;
+  const now = Date.now();
+  const lastSeen = Date.parse(session.lastSeenAt);
+  const created = Date.parse(session.createdAt);
+  const shouldRotate = now - created >= USER_SESSION_ROTATE_MS;
+  const shouldTouch =
+    !Number.isFinite(lastSeen) || now - lastSeen >= USER_SESSION_TOUCH_MS;
+
+  if (!shouldRotate && !shouldTouch) {
+    await store.persistPrunedIfNeeded(sessions, pruned);
+    return;
+  }
+
+  if (shouldRotate) {
+    const newToken = randomBytes(32).toString("hex");
+    const newHash = hashSessionToken(newToken);
+    const expiresAt = new Date(
+      now + USER_SESSION_TTL_SECONDS * 1000,
+    ).toISOString();
+    pruned[index] = {
+      ...session,
+      tokenHash: newHash,
+      createdAt: new Date(now).toISOString(),
+      lastSeenAt: new Date(now).toISOString(),
+      expiresAt,
+    };
+    await store.writeSessions(pruned);
+    response.cookies.set(
+      USER_SESSION_COOKIE,
+      newToken,
+      sessionCookieOptions(),
+    );
+    return;
+  }
+
+  pruned[index] = {
+    ...session,
+    lastSeenAt: new Date(now).toISOString(),
+  };
+  await store.writeSessions(pruned);
 }

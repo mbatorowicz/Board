@@ -1,6 +1,7 @@
 import type { QuickLink, QuickLinkInput } from "./types";
 import { createQuickLink } from "@/lib/quick-link";
 import { readJsonFile, writeJsonFile } from "@/lib/data-file";
+import { readCachedJson } from "@/lib/json-cache";
 
 const FILE = "links.json";
 
@@ -53,8 +54,10 @@ async function writeList(links: QuickLink[]): Promise<void> {
 }
 
 export async function getQuickLinks(): Promise<QuickLink[]> {
-  const raw = await readRaw();
-  return raw ?? DEFAULT_LINKS;
+  return readCachedJson(FILE, async () => {
+    const raw = await readRaw();
+    return raw ?? DEFAULT_LINKS;
+  });
 }
 
 export async function addQuickLink(input: QuickLinkInput): Promise<void> {

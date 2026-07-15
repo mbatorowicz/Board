@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { invalidateJsonCache } from "@/lib/json-cache";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
+const writeChains = new Map<string, Promise<void>>();
 
 function dataPath(filename: string): string {
   const base = path.basename(filename);
@@ -38,7 +40,7 @@ async function replaceFile(tmpPath: string, targetPath: string): Promise<void> {
   }
 }
 
-export async function writeJsonFile(
+async function writeJsonFileInner(
   filename: string,
   data: unknown,
 ): Promise<void> {
@@ -50,8 +52,21 @@ export async function writeJsonFile(
   await fs.writeFile(tmpPath, content, "utf8");
   try {
     await replaceFile(tmpPath, targetPath);
+    invalidateJsonCache(filename);
   } catch (error) {
     await fs.unlink(tmpPath).catch(() => undefined);
     throw error;
   }
+}
+
+export async function writeJsonFile(
+  filename: string,
+  data: unknown,
+): Promise<void> {
+  const previous = writeChains.get(filename) ?? Promise.resolve();
+  const next = previous
+    .catch(() => undefined)
+    .then(() => writeJsonFileInner(filename, data));
+  writeChains.set(filename, next);
+  await next;
 }

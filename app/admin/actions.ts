@@ -24,10 +24,15 @@ import {
   validateAnnouncementInput,
   validateHeaderInput,
   validateLinkInput,
+  clampText,
 } from "@/lib/security/validate";
+import {
+  LIMITS,
+} from "@/lib/security/limits";
 import {
   createUser,
   deleteUser,
+  getUserById,
   resetUserPin,
   updateUserRole,
   validatePin,
@@ -155,7 +160,10 @@ export async function saveCertCategoriesAction(
     revalidatePath("/admin");
     return;
   }
-  const all = formData.getAll("category").map(String);
+  const all = formData
+    .getAll("category")
+    .map((item) => clampText(String(item), LIMITS.certCategory))
+    .filter(Boolean);
   const visible = new Set(formData.getAll("visible").map(String));
   const hiddenCertCategories = all.filter((category) => !visible.has(category));
   const settings = await getSettings();
@@ -281,7 +289,10 @@ export async function createUserAction(formData: FormData): Promise<void> {
 
   const name = validateUserName(String(formData.get("name") ?? ""));
   const role = String(formData.get("role") ?? "");
-  const pin = validatePin(String(formData.get("pin") ?? ""));
+  const pin = validatePin(
+    String(formData.get("pin") ?? ""),
+    isUserRole(role) ? role : "reader",
+  );
 
   if (!name || !isUserRole(role) || !pin) {
     await setFlash({ kind: "error", message: copy.admin.userInvalid });
@@ -330,7 +341,10 @@ export async function resetUserPinAction(formData: FormData): Promise<void> {
   }
 
   const id = String(formData.get("id") ?? "").trim();
-  const pin = validatePin(String(formData.get("pin") ?? ""));
+  const user = id ? await getUserById(id) : null;
+  const pin = user
+    ? validatePin(String(formData.get("pin") ?? ""), user.role)
+    : null;
   if (!id || !pin) {
     await setFlash({ kind: "error", message: copy.admin.userInvalid });
     revalidatePath("/admin");

@@ -12,6 +12,8 @@ import { isQuickLink, isUserRole } from "@/lib/type-guards";
 import {
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
+  PIN_PRIVILEGED_MAX_LENGTH,
+  PIN_PRIVILEGED_MIN_LENGTH,
   LIMITS,
 } from "@/lib/security/limits";
 import {
@@ -66,9 +68,28 @@ async function writeList(users: User[]): Promise<void> {
   await writeJsonFile(FILE, users);
 }
 
-export function validatePin(pin: string): string | null {
+function isPrivilegedRole(role: UserRole): boolean {
+  return role === "admin" || role === "editor";
+}
+
+export function validatePin(pin: string, role: UserRole = "reader"): string | null {
   const value = pin.trim();
-  if (!/^\d+$/.test(value)) return null;
+  if (isPrivilegedRole(role)) {
+    if (!/^[a-zA-Z0-9]+$/.test(value)) {
+      return null;
+    }
+    if (
+      value.length < PIN_PRIVILEGED_MIN_LENGTH ||
+      value.length > PIN_PRIVILEGED_MAX_LENGTH
+    ) {
+      return null;
+    }
+    return value;
+  }
+
+  if (!/^\d+$/.test(value)) {
+    return null;
+  }
   if (value.length < PIN_MIN_LENGTH || value.length > PIN_MAX_LENGTH) {
     return null;
   }
@@ -116,7 +137,7 @@ export async function createUser(input: {
   pin: string;
 }): Promise<User | null> {
   const name = validateUserName(input.name);
-  const pin = validatePin(input.pin);
+  const pin = validatePin(input.pin, input.role);
   if (!name || !pin || !isUserRole(input.role)) return null;
 
   const users = await readList();
@@ -151,11 +172,11 @@ export async function updateUserRole(
 }
 
 export async function resetUserPin(id: string, pin: string): Promise<boolean> {
-  const validated = validatePin(pin);
-  if (!validated) return false;
   const users = await readList();
   const index = users.findIndex((user) => user.id === id);
   if (index === -1) return false;
+  const validated = validatePin(pin, users[index]!.role);
+  if (!validated) return false;
   users[index] = { ...users[index]!, pinHash: hashPin(validated) };
   await writeList(users);
   return true;
@@ -173,29 +194,26 @@ export async function verifyUserPin(
   userId: string,
   pin: string,
 ): Promise<User | null> {
-  const validated = validatePin(pin);
-  if (!validated) return null;
   const user = await getUserById(userId);
-  if (!user || !verifyPin(validated, user.pinHash)) return null;
+  if (!user) return null;
+  const validated = validatePin(pin, user.role);
+  if (!validated || !verifyPin(validated, user.pinHash)) return null;
   return user;
 }
 
 export async function verifyUserCredentials(
   input: { userId?: string; name?: string; pin: string },
 ): Promise<User | null> {
-  const pin = validatePin(input.pin);
-  if (!pin) return null;
-
   let user: User | null = null;
   if (input.userId) {
-    user = await verifyUserPin(input.userId, pin);
+    user = await getUserById(input.userId);
   } else if (input.name) {
-    const found = await findUserByName(input.name);
-    if (found) {
-      user = verifyPin(pin, found.pinHash) ? found : null;
-    }
+    user = await findUserByName(input.name);
   }
+  if (!user) return null;
 
+  const pin = validatePin(input.pin, user.role);
+  if (!pin || !verifyPin(pin, user.pinHash)) return null;
   return user;
 }
 

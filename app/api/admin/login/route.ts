@@ -2,7 +2,10 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { getAdminPassword } from "@/lib/config";
 import { ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
-import { createAdminSessionToken } from "@/lib/security/admin-session";
+import {
+  createAdminSessionToken,
+  revokeAllAdminSessions,
+} from "@/lib/security/admin-session";
 import { safeEqualString } from "@/lib/security/password";
 import {
   ADMIN_PASSWORD_MAX,
@@ -14,7 +17,7 @@ import { CSRF_COOKIE, verifyCsrfToken } from "@/lib/security/csrf";
 import { clampText } from "@/lib/security/validate";
 import { cookieSecure } from "@/lib/cookie-secure";
 import { appUrl } from "@/lib/request-url";
-import { clientIpFromHeaders } from "@/lib/client-ip";
+import { clientIpFromRequest } from "@/lib/trusted-proxy";
 
 export async function POST(request: NextRequest) {
   const redirectUrl = appUrl(request, "/admin");
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   if (
     !checkRateLimit(
-      rateLimitKey("login", clientIpFromHeaders(request.headers)),
+      rateLimitKey("login", clientIpFromRequest(request)),
       RATE_LIMITS.login.max,
       RATE_LIMITS.login.windowMs,
     )
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  await revokeAllAdminSessions();
   const token = await createAdminSessionToken();
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_SESSION_COOKIE, token, {

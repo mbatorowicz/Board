@@ -1,5 +1,6 @@
 import type { SiteSettings } from "@/lib/types";
 import { readJsonFile, writeJsonFile } from "@/lib/data-file";
+import { readCachedJson } from "@/lib/json-cache";
 import { OFFICE_NAME } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { clampText } from "@/lib/security/validate";
@@ -27,9 +28,10 @@ function defaultSettings(): SiteSettings {
 function normalize(raw: unknown): SiteSettings {
   const value = (raw ?? {}) as Partial<SiteSettings>;
   const hidden = Array.isArray(value.hiddenCertCategories)
-    ? value.hiddenCertCategories.filter(
-        (item): item is string => typeof item === "string",
-      )
+    ? value.hiddenCertCategories
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => clampText(item, LIMITS.certCategory))
+        .filter(Boolean)
     : [];
 
   const headerTitle =
@@ -54,11 +56,13 @@ function normalize(raw: unknown): SiteSettings {
 }
 
 export async function getSettings(): Promise<SiteSettings> {
-  const raw = await readJsonFile<unknown>(FILE);
-  if (raw === null) {
-    return defaultSettings();
-  }
-  return normalize(raw);
+  return readCachedJson(FILE, async () => {
+    const raw = await readJsonFile<unknown>(FILE);
+    if (raw === null) {
+      return defaultSettings();
+    }
+    return normalize(raw);
+  });
 }
 
 export async function saveSettings(settings: SiteSettings): Promise<void> {

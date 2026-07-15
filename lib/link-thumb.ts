@@ -1,10 +1,10 @@
 import { LIMITS } from "@/lib/security/limits";
 import { isSafeThumbTargetResolved } from "@/lib/security/thumb-target";
+import { safeFetchUrl } from "@/lib/security/safe-fetch";
 import type { ThumbSource } from "@/lib/link-thumb-cache";
 
 const FETCH_TIMEOUT_MS = 5_000;
 const MAX_REDIRECTS = 3;
-const USER_AGENT = "urzad-homepage/1.0";
 
 const COVER_MIN_SHORT_SIDE = 128;
 const COVER_MIN_LONG_SIDE = 200;
@@ -162,77 +162,30 @@ function normalizeContentType(raw: string | null): string | null {
   return mime;
 }
 
-async function readLimitedBody(
-  response: Response,
-  maxBytes: number,
-): Promise<Buffer | null> {
-  const reader = response.body?.getReader();
-  if (!reader) {
-    const buf = Buffer.from(await response.arrayBuffer());
-    return buf.byteLength <= maxBytes ? buf : null;
-  }
-
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-    total += value.byteLength;
-    if (total > maxBytes) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-
-  return Buffer.concat(chunks);
-}
-
 async function fetchWithRedirects(
   url: string,
   maxBytes: number,
   accept: string,
-): Promise<Response | null> {
-  let current = url;
+): Promise<{ ok: boolean; body: Buffer; contentType: string | null } | null> {
+  const response = await safeFetchUrl(url, {
+    accept,
+    timeoutMs: FETCH_TIMEOUT_MS,
+    maxBytes,
+    maxRedirects: MAX_REDIRECTS,
+  });
 
-  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    if (!(await isSafeThumbTargetResolved(current))) {
-      return null;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(current, {
-        signal: controller.signal,
-        redirect: "manual",
-        headers: {
-          "user-agent": USER_AGENT,
-          accept,
-        },
-      });
-
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get("location");
-        if (!location) {
-          return null;
-        }
-        current = new URL(location, current).toString();
-        continue;
-      }
-
-      return response;
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
+  if (!response || response.status < 200 || response.status >= 300) {
+    return null;
   }
 
-  return null;
+  return {
+    ok: true,
+    body: response.body,
+    contentType:
+      typeof response.headers["content-type"] === "string"
+        ? response.headers["content-type"]
+        : null,
+  };
 }
 
 async function fetchImage(url: string): Promise<FetchedImage | null> {
@@ -241,16 +194,16 @@ async function fetchImage(url: string): Promise<FetchedImage | null> {
     LIMITS.linkThumbMaxBytes,
     "image/*,*/*;q=0.8",
   );
-  if (!response || !response.ok) {
+  if (!response?.ok) {
     return null;
   }
 
-  const buffer = await readLimitedBody(response, LIMITS.linkThumbMaxBytes);
+  const buffer = response.body;
   if (!buffer || buffer.byteLength === 0) {
     return null;
   }
 
-  const headerMime = normalizeContentType(response.headers.get("content-type"));
+  const headerMime = normalizeContentType(response.contentType);
   const detected = detectImageMime(buffer);
   const mime = headerMime ?? detected;
   if (!mime) {
@@ -391,16 +344,11 @@ async function fetchPageHtml(url: string): Promise<string | null> {
     LIMITS.linkThumbHtmlMaxBytes,
     "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
   );
-  if (!response || !response.ok) {
+  if (!response?.ok) {
     return null;
   }
 
-  const buffer = await readLimitedBody(response, LIMITS.linkThumbHtmlMaxBytes);
-  if (!buffer) {
-    return null;
-  }
-
-  return buffer.toString("utf8");
+  return response.body.toString("utf8");
 }
 
 function labelInitial(label: string): string {

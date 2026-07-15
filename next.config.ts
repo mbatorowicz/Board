@@ -24,7 +24,7 @@ function buildContentSecurityPolicy(): string {
 }
 
 function securityHeaders() {
-  return [
+  const headers = [
     { key: "X-Frame-Options", value: "DENY" },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -37,6 +37,18 @@ function securityHeaders() {
       value: buildContentSecurityPolicy(),
     },
   ];
+
+  if (
+    process.env.COOKIE_SECURE === "true" ||
+    process.env.ENABLE_HSTS === "true"
+  ) {
+    headers.push({
+      key: "Strict-Transport-Security",
+      value: "max-age=31536000; includeSubDomains",
+    });
+  }
+
+  return headers;
 }
 
 const nextConfig: NextConfig = {

@@ -4,7 +4,7 @@ import { createQuickLink } from "@/lib/quick-link";
 import { getQuickLinks } from "@/lib/links";
 import { isQuickLink } from "@/lib/type-guards";
 import { validateLinkInput } from "@/lib/security/validate";
-import { LIMITS } from "@/lib/security/limits";
+import { LIMITS, DEVICE_LAST_SEEN_THROTTLE_MS } from "@/lib/security/limits";
 import { reorderLinksByIds } from "@/lib/reorder-links";
 
 const FILE = "device-links.json";
@@ -54,7 +54,17 @@ export async function getOrInitDeviceLinks(
 
   if (existing) {
     const links = normalizeLinks(existing.links);
-    if (process.env.NODE_ENV !== "development") {
+    const now = Date.now();
+    const lastSeen = Date.parse(existing.lastSeenAt);
+    const hostChanged =
+      meta?.host && meta.host.slice(0, 253) !== existing.lastHost;
+    const shouldTouch =
+      process.env.NODE_ENV !== "development" &&
+      (hostChanged ||
+        !Number.isFinite(lastSeen) ||
+        now - lastSeen >= DEVICE_LAST_SEEN_THROTTLE_MS);
+
+    if (shouldTouch) {
       store.devices[deviceId] = {
         ...existing,
         links,

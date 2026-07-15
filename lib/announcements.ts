@@ -1,5 +1,6 @@
 import type { Announcement, AnnouncementInput } from "@/lib/types";
 import { readJsonFile, writeJsonFile } from "@/lib/data-file";
+import { readCachedJson } from "@/lib/json-cache";
 
 const FILE = "announcements.json";
 
@@ -22,8 +23,7 @@ async function writeList(list: Announcement[]): Promise<void> {
 }
 
 export async function getAnnouncements(): Promise<Announcement[]> {
-  const list = await readList();
-  return sortAnnouncements(list);
+  return readCachedJson(FILE, async () => sortAnnouncements(await readList()));
 }
 
 export async function addAnnouncement(input: AnnouncementInput): Promise<void> {

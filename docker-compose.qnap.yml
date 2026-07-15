@@ -17,11 +17,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      ADMIN_PASSWORD: "ZMIEŃ-TO-HASLO"
+      # Ustaw ADMIN_PASSWORD w Advanced Settings → Environment (Container Station)
       OFFICE_NAME: "Urząd Gminy"
       NODE_ENV: production
       NODE_OPTIONS: "--max-old-space-size=256"
-      # LINK_THUMBS: placeholder   # odkomentuj na słabym NAS — bez fetch miniatur
+      LINK_THUMBS: placeholder
     volumes:
       - /share/Container/Board/data:/app/.data
     restart: unless-stopped

@@ -18,6 +18,29 @@ import styles from "@/app/admin/admin.module.css";
 
 type ModalKind = "add" | "edit" | "loginMode" | null;
 
+function isPrivilegedRole(role: UserRole): boolean {
+  return role === "admin" || role === "editor";
+}
+
+function pinInputProps(role: UserRole) {
+  if (isPrivilegedRole(role)) {
+    return {
+      inputMode: "text" as const,
+      pattern: "[A-Za-z0-9]{8,32}",
+      minLength: 8,
+      maxLength: 32,
+      autoComplete: "new-password" as const,
+    };
+  }
+  return {
+    inputMode: "numeric" as const,
+    pattern: "[0-9]{4,6}",
+    minLength: 4,
+    maxLength: 6,
+    autoComplete: "new-password" as const,
+  };
+}
+
 export default function UsersPanel({
   users,
   settings,
@@ -29,6 +52,7 @@ export default function UsersPanel({
 }) {
   const [modal, setModal] = useState<ModalKind>(null);
   const [editUser, setEditUser] = useState<UserPublic | null>(null);
+  const [newUserRole, setNewUserRole] = useState<UserRole>("reader");
 
   function openEdit(user: UserPublic): void {
     setEditUser(user);
@@ -104,7 +128,15 @@ export default function UsersPanel({
           </label>
           <label className={ui.label}>
             {copy.labels.role}
-            <select className={ui.input} name="role" defaultValue="reader" required>
+            <select
+              className={ui.input}
+              name="role"
+              value={newUserRole}
+              onChange={(event) =>
+                setNewUserRole(event.target.value as UserRole)
+              }
+              required
+            >
               <option value="reader">{copy.roles.reader}</option>
               <option value="editor">{copy.roles.editor}</option>
               <option value="admin">{copy.roles.admin}</option>
@@ -116,10 +148,7 @@ export default function UsersPanel({
               className={ui.input}
               type="password"
               name="pin"
-              inputMode="numeric"
-              pattern="[0-9]{4,6}"
-              minLength={4}
-              maxLength={6}
+              {...pinInputProps(newUserRole)}
               required
             />
           </label>
@@ -163,10 +192,7 @@ export default function UsersPanel({
                   className={ui.input}
                   type="password"
                   name="pin"
-                  inputMode="numeric"
-                  pattern="[0-9]{4,6}"
-                  minLength={4}
-                  maxLength={6}
+                  {...pinInputProps(editUser.role)}
                   required
                 />
               </label>

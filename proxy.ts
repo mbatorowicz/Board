@@ -8,6 +8,7 @@ import {
   getRequestClientMeta,
   isLoggedPagePath,
 } from "@/lib/request-client";
+import { maintainUserSessionCookie } from "@/lib/user-session";
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
@@ -41,5 +42,10 @@ function maybeRecordPageView(request: NextRequest): void {
 
 export async function proxy(request: NextRequest) {
   maybeRecordPageView(request);
-  return nextWithRequestContext(request, isAdminPath(request.nextUrl.pathname));
+  const response = nextWithRequestContext(
+    request,
+    isAdminPath(request.nextUrl.pathname),
+  );
+  await maintainUserSessionCookie(request, response);
+  return response;
 }

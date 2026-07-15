@@ -8,6 +8,7 @@ import { isSafeThumbTargetResolved } from "@/lib/security/thumb-target";
 import { LIMITS, RATE_LIMITS } from "@/lib/security/limits";
 import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { type NextRequest } from "next/server";
+import { clientIpFromRequest } from "@/lib/trusted-proxy";
 
 const CACHE_CONTROL =
   "public, max-age=86400, stale-while-revalidate=604800";
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
 
   if (
     !checkRateLimit(
-      rateLimitKey("link-favicon"),
+      rateLimitKey("link-favicon", clientIpFromRequest(request)),
       RATE_LIMITS.linkThumb.max,
       RATE_LIMITS.linkThumb.windowMs,
     )

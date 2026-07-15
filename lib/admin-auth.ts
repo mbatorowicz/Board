@@ -1,29 +1,28 @@
 import { cookies } from "next/headers";
-import { getAdminPassword } from "@/lib/config";
 import { verifyAdminSessionToken } from "@/lib/security/admin-session";
+import { getAdminPassword } from "@/lib/config";
 import { getCurrentUser } from "@/lib/user-session";
 
 export const ADMIN_SESSION_COOKIE = "admin_session";
 
 export async function isAuthed(): Promise<boolean> {
   if (!getAdminPassword()) {
-    const user = await getCurrentUser();
-    return user?.role === "admin";
+    return false;
   }
+
   const cookieStore = await cookies();
-  const adminSession = await verifyAdminSessionToken(
+  return verifyAdminSessionToken(
     cookieStore.get(ADMIN_SESSION_COOKIE)?.value,
   );
-  if (adminSession) return true;
-
-  const user = await getCurrentUser();
-  return user?.role === "admin";
 }
 
 export async function isEditorAuthed(): Promise<boolean> {
-  if (await isAuthed()) return true;
+  if (await isAuthed()) {
+    return true;
+  }
+
   const user = await getCurrentUser();
-  return user?.role === "editor";
+  return user?.role === "editor" || user?.role === "admin";
 }
 
 export async function requireAuth(): Promise<boolean> {

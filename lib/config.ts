@@ -7,6 +7,27 @@ export const FEED_REVALIDATE_SECONDS = Number(
   process.env.FEED_REVALIDATE_SECONDS ?? 1200,
 );
 
+const PLACEHOLDER_ADMIN_PASSWORDS = new Set([
+  "",
+  "ZMIEŃ-TO-HASLO",
+  "change-me",
+  "changeme",
+]);
+
 export function getAdminPassword(): string | undefined {
-  return process.env.ADMIN_PASSWORD;
+  const value = process.env.ADMIN_PASSWORD?.trim();
+  return value || undefined;
+}
+
+export function assertProductionConfig(): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  const password = getAdminPassword();
+  if (!password || PLACEHOLDER_ADMIN_PASSWORDS.has(password)) {
+    throw new Error(
+      "ADMIN_PASSWORD musi być ustawione na produkcji (silne, unikalne hasło).",
+    );
+  }
 }
