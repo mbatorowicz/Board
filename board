@@ -8,23 +8,60 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-COMPOSE=(docker compose)
+COMPOSE=()
 ENV_FILE="${ROOT}/.env"
 DATA_DIR="${ROOT}/data"
+USE_SUDO_DOCKER=0
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 
+resolve_compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    COMPOSE=(docker compose)
+  elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE=(docker-compose)
+  else
+    red "Brak Docker Compose. Zainstaluj: sudo apt install -y docker.io docker-compose"
+    exit 1
+  fi
+}
+
+docker_accessible() {
+  docker info >/dev/null 2>&1
+}
+
 require_docker() {
   if ! command -v docker >/dev/null 2>&1; then
-    red "Brak Docker. Zainstaluj: https://docs.docker.com/engine/install/"
+    red "Brak Docker. Zainstaluj: sudo apt install -y docker.io docker-compose"
     exit 1
   fi
-  if ! docker compose version >/dev/null 2>&1; then
-    red "Brak Docker Compose v2 (docker compose)."
-    exit 1
+
+  resolve_compose
+
+  if docker_accessible; then
+    return
   fi
+
+  if [[ "${COMPOSE[0]}" == "docker" ]] && sudo docker info >/dev/null 2>&1; then
+    USE_SUDO_DOCKER=1
+    COMPOSE=(sudo docker compose)
+    yellow "Brak uprawnień do Dockera — używam sudo."
+    yellow "Na stałe: sudo usermod -aG docker \$USER && newgrp docker"
+    return
+  fi
+
+  if [[ "${COMPOSE[0]}" == "docker-compose" ]] && sudo docker-compose version >/dev/null 2>&1; then
+    USE_SUDO_DOCKER=1
+    COMPOSE=(sudo docker-compose)
+    yellow "Brak uprawnień do Dockera — używam sudo."
+    yellow "Na stałe: sudo usermod -aG docker \$USER && newgrp docker"
+    return
+  fi
+
+  red "Docker nie odpowiada. Sprawdź: sudo systemctl start docker"
+  exit 1
 }
 
 ensure_data_dir() {

@@ -72,7 +72,13 @@ main() {
   clone_repo
   restore_backups
   cd "$DIR"
-  chmod +x board
+  chmod +x board install.sh
+
+  if groups "$USER" 2>/dev/null | grep -q docker; then
+    :
+  elif command -v sudo >/dev/null 2>&1 && sudo usermod -aG docker "$USER" 2>/dev/null; then
+    yellow "Dodano $USER do grupy docker (pełny efekt po wylogowaniu; ./board użyje sudo jeśli trzeba)"
+  fi
 
   if [[ -n "${ADMIN_PASSWORD:-}" ]]; then
     exec ./board up
