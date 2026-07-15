@@ -21,30 +21,29 @@ sudo usermod -aG docker "$USER"
 
 ## Pierwsze uruchomienie — jedna komenda
 
+**Instalacja z internetu** (usuwa stary `~/Board`, klonuje od nowa, zachowuje `data/` i `.env` jeśli były):
+
 ```bash
-git clone https://github.com/mbatorowicz/Board.git
+ADMIN_PASSWORD='silne-unikalne-haslo' bash -c "$(curl -fsSL https://raw.githubusercontent.com/mbatorowicz/Board/master/install.sh)"
+```
+
+**Jeśli repozytorium już masz lokalnie:**
+
+```bash
 cd Board
-chmod +x board
-ADMIN_PASSWORD='silne-unikalne-haslo' ./board up
+ADMIN_PASSWORD='silne-unikalne-haslo' ./install.sh
 ```
 
-Skrypt:
+Skrypt `./install.sh`:
 
-1. Tworzy `.env` z `.env.example` (jeśli brak)
-2. Zapisuje `ADMIN_PASSWORD`
-3. Tworzy folder `data/` na dane aplikacji
-4. Buduje obraz Docker i uruchamia kontener
+1. Usuwa istniejący katalog `~/Board` (domyślnie)
+2. Klonuje repozytorium od zera
+3. Przywraca `data/` i `.env` z poprzedniej instalacji (jeśli były)
+4. Uruchamia `./board up` (Docker build + start)
 
-Strona: `http://<IP-serwera>:3000`  
-Admin: `http://<IP-serwera>:3000/admin`
+Inny katalog instalacji: `BOARD_DIR=/opt/board ADMIN_PASSWORD='...' ./install.sh`
 
-### Interaktywne hasło (bez podawania w linii)
-
-```bash
-chmod +x board
-./board up
-# Skrypt poprosi o ADMIN_PASSWORD
-```
+Po instalacji strona: `http://<IP-serwera>:3000`
 
 ## Komendy `./board`
 

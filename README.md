@@ -33,11 +33,10 @@ Szczegóły: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 ### Produkcja (Linux) — jedna komenda
 
 ```bash
-git clone https://github.com/mbatorowicz/Board.git
-cd Board
-chmod +x board
-ADMIN_PASSWORD='silne-haslo' ./board up
+ADMIN_PASSWORD='silne-haslo' bash -c "$(curl -fsSL https://raw.githubusercontent.com/mbatorowicz/Board/master/install.sh)"
 ```
+
+Instaluje do `~/Board`, nadpisuje starą kopię, uruchamia Docker.
 
 → http://\<IP-serwera\>:3000
 
