@@ -263,3 +263,99 @@
   margin: 0;
   color: var(--text);
 }
+
+.editorShell {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.editorToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.editorToolbarBtn {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.editorToolbarBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.editorShell :global(.ProseMirror) {
+  min-height: 180px;
+  padding: 0.75rem 0.9rem;
+  outline: none;
+}
+
+.editorShell :global(.ProseMirror p) {
+  margin: 0 0 0.75rem;
+}
+
+.editorShell :global(.ProseMirror h2),
+.editorShell :global(.ProseMirror h3) {
+  margin: 0.75rem 0 0.5rem;
+}
+
+.editorShell :global(.ProseMirror img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.editorShell :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  color: var(--text-muted);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.attachmentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.attachmentSize {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.attachmentRemove {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}

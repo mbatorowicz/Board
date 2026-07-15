@@ -8,10 +8,19 @@ export interface CertAdvisory {
   critical: boolean;
 }
 
+export interface AnnouncementAttachment {
+  id: string;
+  filename: string;
+  mime: string;
+  size: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;
   body: string;
+  bodyFormat?: "plain" | "html";
+  attachments?: AnnouncementAttachment[];
   createdAt: string;
   pinned: boolean;
 }
@@ -19,6 +28,8 @@ export interface Announcement {
 export interface AnnouncementInput {
   title: string;
   body: string;
+  bodyFormat: "plain" | "html";
+  attachments: AnnouncementAttachment[];
   pinned: boolean;
 }
 

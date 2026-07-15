@@ -10,7 +10,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tiptap/extension-image": "^3.27.4",
+    "@tiptap/extension-link": "^3.27.4",
+    "@tiptap/extension-placeholder": "^3.27.4",
+    "@tiptap/react": "^3.27.4",
+    "@tiptap/starter-kit": "^3.27.4",
     "fast-xml-parser": "^5.9.2",
+    "isomorphic-dompurify": "^3.18.0",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4"

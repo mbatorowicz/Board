@@ -1,6 +1,10 @@
 export const LIMITS = {
   title: 200,
   body: 10_000,
+  bodyHtml: 50_000,
+  announcementImageMaxBytes: 5_000_000,
+  announcementAttachmentMaxBytes: 10_000_000,
+  announcementAttachmentsMax: 10,
   name: 100,
   linkLabel: 100,
   linkDescription: 500,

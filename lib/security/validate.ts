@@ -1,4 +1,8 @@
 import { LIMITS } from "@/lib/security/limits";
+import {
+  isNonEmptyHtml,
+  sanitizeAnnouncementHtml,
+} from "@/lib/sanitize-html";
 
 export function clampText(value: string, max: number): string {
   return value.trim().slice(0, max);
@@ -98,13 +102,41 @@ export function isSafeThumbTarget(url: string): boolean {
 export function validateAnnouncementInput(input: {
   title: string;
   body: string;
-}): { title: string; body: string } | null {
+  bodyFormat?: string;
+}): { title: string; body: string; bodyFormat: "plain" | "html" } | null {
   const title = clampText(input.title, LIMITS.title);
-  const body = clampText(input.body, LIMITS.body);
-  if (!isNonEmpty(title) || !isNonEmpty(body)) {
+  const bodyFormat = input.bodyFormat === "html" ? "html" : "plain";
+
+  if (!isNonEmpty(title)) {
     return null;
   }
-  return { title, body };
+
+  if (bodyFormat === "html") {
+    const sanitized = sanitizeAnnouncementHtml(
+      input.body.slice(0, LIMITS.bodyHtml),
+    );
+    if (!isNonEmptyHtml(sanitized)) {
+      return null;
+    }
+    return { title, body: sanitized, bodyFormat: "html" };
+  }
+
+  const body = clampText(input.body, LIMITS.body);
+  if (!isNonEmpty(body)) {
+    return null;
+  }
+  return { title, body, bodyFormat: "plain" };
+}
+
+export function parseAttachmentIds(value: FormDataEntryValue | null): string[] {
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    return [];
+  }
+  return raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
 }
 
 export function validateLinkInput(input: {

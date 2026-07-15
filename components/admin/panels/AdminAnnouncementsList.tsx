@@ -3,15 +3,10 @@
 import { useState } from "react";
 import type { Announcement } from "@/lib/types";
 import AdminDialog from "@/components/admin/AdminDialog";
+import AnnouncementForm from "@/components/admin/AnnouncementForm";
 import CompactRow from "@/components/admin/CompactRow";
-import CsrfFieldClient from "@/components/admin/CsrfFieldClient";
 import { copy, withCount } from "@/lib/copy";
 import { formatAdminDateTime, formatIso } from "@/lib/format";
-import {
-  createAction,
-  deleteAction,
-  updateAction,
-} from "@/app/admin/actions";
 import ui from "@/styles/ui.module.css";
 import styles from "@/app/admin/admin.module.css";
 
@@ -24,6 +19,10 @@ export default function AdminAnnouncementsList({
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<Announcement | null>(null);
+
+  function closeAdd(): void {
+    setAddOpen(false);
+  }
 
   function closeEdit(): void {
     setEditItem(null);
@@ -80,27 +79,17 @@ export default function AdminAnnouncementsList({
         open={addOpen}
         title={copy.admin.addAnnouncement}
         titleId="add-announcement-title"
-        onClose={() => setAddOpen(false)}
+        onClose={closeAdd}
         wide
       >
-        <form action={createAction} className={ui.form}>
-          <CsrfFieldClient token={csrfToken} />
-          <label className={ui.label}>
-            {copy.labels.title}
-            <input className={ui.input} type="text" name="title" required />
-          </label>
-          <label className={ui.label}>
-            {copy.labels.body}
-            <textarea className={ui.textarea} name="body" rows={4} required />
-          </label>
-          <label className={ui.checkboxLabel}>
-            <input type="checkbox" name="pinned" />
-            {copy.labels.pinned}
-          </label>
-          <button className={ui.button} type="submit">
-            {copy.actions.addAnnouncement}
-          </button>
-        </form>
+        {addOpen ? (
+          <AnnouncementForm
+            key="create"
+            mode="create"
+            csrfToken={csrfToken}
+            onSuccess={closeAdd}
+          />
+        ) : null}
       </AdminDialog>
 
       <AdminDialog
@@ -111,53 +100,13 @@ export default function AdminAnnouncementsList({
         wide
       >
         {editItem ? (
-          <>
-            <form action={updateAction} className={ui.form}>
-              <CsrfFieldClient token={csrfToken} />
-              <input type="hidden" name="id" value={editItem.id} />
-              <label className={ui.label}>
-                {copy.labels.title}
-                <input
-                  className={ui.input}
-                  type="text"
-                  name="title"
-                  defaultValue={editItem.title}
-                  required
-                />
-              </label>
-              <label className={ui.label}>
-                {copy.labels.body}
-                <textarea
-                  className={ui.textarea}
-                  name="body"
-                  rows={6}
-                  defaultValue={editItem.body}
-                  required
-                />
-              </label>
-              <label className={ui.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  name="pinned"
-                  defaultChecked={editItem.pinned}
-                />
-                {copy.labels.pinned}
-              </label>
-              <button className={ui.button} type="submit">
-                {copy.actions.saveChanges}
-              </button>
-            </form>
-            <form action={deleteAction}>
-              <CsrfFieldClient token={csrfToken} />
-              <input type="hidden" name="id" value={editItem.id} />
-              <button
-                className={`${ui.button} ${ui.buttonDanger}`}
-                type="submit"
-              >
-                {copy.actions.delete}
-              </button>
-            </form>
-          </>
+          <AnnouncementForm
+            key={editItem.id}
+            mode="edit"
+            csrfToken={csrfToken}
+            announcement={editItem}
+            onSuccess={closeEdit}
+          />
         ) : null}
       </AdminDialog>
     </section>

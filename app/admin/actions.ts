@@ -4,8 +4,14 @@ import { revalidatePath } from "next/cache";
 import {
   addAnnouncement,
   deleteAnnouncement,
+  getAnnouncementById,
   updateAnnouncement,
 } from "@/lib/announcements";
+import type { AnnouncementAttachment } from "@/lib/types";
+import {
+  finalizeAllDraftFiles,
+  mergeAnnouncementAttachments,
+} from "@/lib/announcement-files";
 import { clearAcknowledgments } from "@/lib/acknowledgments";
 import { clearPageViews } from "@/lib/page-views";
 import {
@@ -25,6 +31,7 @@ import {
   validateHeaderInput,
   validateLinkInput,
   clampText,
+  parseAttachmentIds,
 } from "@/lib/security/validate";
 import {
   LIMITS,
@@ -43,7 +50,148 @@ function toAnnouncementInput(formData: FormData) {
   return validateAnnouncementInput({
     title: String(formData.get("title") ?? ""),
     body: String(formData.get("body") ?? ""),
+    bodyFormat: String(formData.get("bodyFormat") ?? "plain"),
   });
+}
+
+export type AnnouncementActionState = {
+  ok: boolean;
+  error?: string;
+};
+
+const announcementActionFailed: AnnouncementActionState = { ok: false };
+
+async function resolveAnnouncementAttachments(
+  formData: FormData,
+  announcementId: string,
+  existing: AnnouncementAttachment[] = [],
+): Promise<AnnouncementAttachment[]> {
+  const keptIds = parseAttachmentIds(formData.get("attachmentIds"));
+  const draftKey = String(formData.get("draftKey") ?? "").trim();
+  return mergeAnnouncementAttachments(
+    announcementId,
+    existing,
+    keptIds,
+    draftKey || undefined,
+  );
+}
+
+export async function createAnnouncementAction(
+  _prev: AnnouncementActionState,
+  formData: FormData,
+): Promise<AnnouncementActionState> {
+  if (!(await guardForm(formData, "editor"))) {
+    revalidatePath("/admin");
+    return { ok: false, error: copy.admin.unauthorized };
+  }
+  const input = toAnnouncementInput(formData);
+  if (!input) {
+    await setFlash({ kind: "error", message: copy.admin.announcementInvalid });
+    revalidatePath("/admin");
+    return { ok: false, error: copy.admin.announcementInvalid };
+  }
+
+  const draftKey = String(formData.get("draftKey") ?? "").trim();
+  const pinned =
+    formData.get("pinned") === "on" || formData.get("pinned") === "true";
+
+  const announcement = await addAnnouncement({
+    ...input,
+    pinned,
+    attachments: [],
+  });
+
+  let attachments: AnnouncementAttachment[] = [];
+  if (draftKey) {
+    attachments = await finalizeAllDraftFiles(draftKey, announcement.id);
+  }
+
+  if (attachments.length > 0) {
+    await updateAnnouncement(announcement.id, {
+      ...input,
+      pinned,
+      attachments,
+    });
+  }
+
+  await setFlash({ kind: "notice", message: copy.admin.announcementAdded });
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function updateAnnouncementAction(
+  _prev: AnnouncementActionState,
+  formData: FormData,
+): Promise<AnnouncementActionState> {
+  if (!(await guardForm(formData, "editor"))) {
+    revalidatePath("/admin");
+    return { ok: false, error: copy.admin.unauthorized };
+  }
+  const id = String(formData.get("id") ?? "").trim();
+  const input = toAnnouncementInput(formData);
+  if (!id || !input) {
+    await setFlash({ kind: "error", message: copy.admin.announcementInvalid });
+    revalidatePath("/admin");
+    return { ok: false, error: copy.admin.announcementInvalid };
+  }
+
+  const existing = await getAnnouncementById(id);
+  if (!existing) {
+    await setFlash({ kind: "error", message: copy.admin.announcementInvalid });
+    revalidatePath("/admin");
+    return { ok: false, error: copy.admin.announcementInvalid };
+  }
+
+  const attachments = await resolveAnnouncementAttachments(
+    formData,
+    id,
+    existing.attachments ?? [],
+  );
+
+  await updateAnnouncement(id, {
+    ...input,
+    pinned:
+      formData.get("pinned") === "on" || formData.get("pinned") === "true",
+    attachments,
+  });
+  await setFlash({ kind: "notice", message: copy.admin.announcementUpdated });
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function deleteAnnouncementAction(
+  _prev: AnnouncementActionState,
+  formData: FormData,
+): Promise<AnnouncementActionState> {
+  if (!(await guardForm(formData, "editor"))) {
+    revalidatePath("/admin");
+    return { ok: false, error: copy.admin.unauthorized };
+  }
+  const id = String(formData.get("id") ?? "").trim();
+  if (id) {
+    await deleteAnnouncement(id);
+    await setFlash({ kind: "notice", message: copy.admin.announcementDeleted });
+  }
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** @deprecated Użyj createAnnouncementAction */
+export async function createAction(formData: FormData): Promise<void> {
+  await createAnnouncementAction(announcementActionFailed, formData);
+}
+
+/** @deprecated Użyj updateAnnouncementAction */
+export async function updateAction(formData: FormData): Promise<void> {
+  await updateAnnouncementAction(announcementActionFailed, formData);
+}
+
+/** @deprecated Użyj deleteAnnouncementAction */
+export async function deleteAction(formData: FormData): Promise<void> {
+  await deleteAnnouncementAction(announcementActionFailed, formData);
 }
 
 function toLinkInput(formData: FormData) {
@@ -72,63 +220,6 @@ async function guardForm(
     return false;
   }
   return true;
-}
-
-export async function createAction(formData: FormData): Promise<void> {
-  if (!(await guardForm(formData, "editor"))) {
-    revalidatePath("/admin");
-    return;
-  }
-  const input = toAnnouncementInput(formData);
-  if (!input) {
-    await setFlash({ kind: "error", message: copy.admin.announcementInvalid });
-    revalidatePath("/admin");
-    return;
-  }
-  await addAnnouncement({
-    ...input,
-    pinned:
-      formData.get("pinned") === "on" || formData.get("pinned") === "true",
-  });
-  await setFlash({ kind: "notice", message: copy.admin.announcementAdded });
-  revalidatePath("/");
-  revalidatePath("/admin");
-}
-
-export async function updateAction(formData: FormData): Promise<void> {
-  if (!(await guardForm(formData, "editor"))) {
-    revalidatePath("/admin");
-    return;
-  }
-  const id = String(formData.get("id") ?? "").trim();
-  const input = toAnnouncementInput(formData);
-  if (!id || !input) {
-    await setFlash({ kind: "error", message: copy.admin.announcementInvalid });
-    revalidatePath("/admin");
-    return;
-  }
-  await updateAnnouncement(id, {
-    ...input,
-    pinned:
-      formData.get("pinned") === "on" || formData.get("pinned") === "true",
-  });
-  await setFlash({ kind: "notice", message: copy.admin.announcementUpdated });
-  revalidatePath("/");
-  revalidatePath("/admin");
-}
-
-export async function deleteAction(formData: FormData): Promise<void> {
-  if (!(await guardForm(formData, "editor"))) {
-    revalidatePath("/admin");
-    return;
-  }
-  const id = String(formData.get("id") ?? "").trim();
-  if (id) {
-    await deleteAnnouncement(id);
-    await setFlash({ kind: "notice", message: copy.admin.announcementDeleted });
-  }
-  revalidatePath("/");
-  revalidatePath("/admin");
 }
 
 export async function clearAcknowledgmentsAction(
