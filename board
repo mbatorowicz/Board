@@ -66,9 +66,34 @@ require_docker() {
 
 ensure_data_dir() {
   mkdir -p "$DATA_DIR"
-  if [[ ! -f "${DATA_DIR}/.gitkeep" ]]; then
-    touch "${DATA_DIR}/.gitkeep" 2>/dev/null || true
+  # uid 1001 = użytkownik nextjs w kontenerze
+  if [[ ! -O "$DATA_DIR" ]] 2>/dev/null; then
+    if [[ "$USE_SUDO_DOCKER" == "1" ]] || [[ "$(id -u)" -eq 0 ]]; then
+      chown -R 1001:1001 "$DATA_DIR" 2>/dev/null || sudo chown -R 1001:1001 "$DATA_DIR"
+    elif command -v sudo >/dev/null 2>&1; then
+      sudo chown -R 1001:1001 "$DATA_DIR" 2>/dev/null || true
+    fi
   fi
+}
+
+wait_for_http() {
+  local port="${BOARD_PORT:-3000}"
+  local i
+  for i in $(seq 1 30); do
+    if curl -sf "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+show_logs_hint() {
+  red "Aplikacja nie odpowiada na porcie ${BOARD_PORT:-3000}."
+  echo "Ostatnie logi:"
+  "${COMPOSE[@]}" logs --tail=40 board 2>/dev/null || "${COMPOSE[@]}" logs --tail=40
+  echo ""
+  echo "Pełne logi: ./board logs"
 }
 
 set_env_value() {
@@ -83,14 +108,22 @@ set_env_value() {
   ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
+load_env() {
+  if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE" 2>/dev/null || true
+    set +a
+  fi
+}
+
 ensure_env() {
   if [[ ! -f "$ENV_FILE" ]]; then
     cp "${ROOT}/.env.example" "$ENV_FILE"
     yellow "Utworzono .env z .env.example"
   fi
 
-  # shellcheck disable=SC1090
-  source "$ENV_FILE" 2>/dev/null || true
+  load_env
 
   if [[ -n "${ADMIN_PASSWORD:-}" ]]; then
     set_env_value "ADMIN_PASSWORD" "$ADMIN_PASSWORD" "$ENV_FILE"
@@ -167,7 +200,12 @@ cmd_up() {
   ensure_data_dir
   yellow "Budowanie i uruchamianie (pierwszy raz może potrwać kilka minut)..."
   "${COMPOSE[@]}" up -d --build
-  show_status
+  if wait_for_http; then
+    show_status
+  else
+    show_logs_hint
+    exit 1
+  fi
 }
 
 cmd_down() {
@@ -183,7 +221,25 @@ cmd_restart() {
 
 cmd_logs() {
   require_docker
-  "${COMPOSE[@]}" logs -f --tail=100
+  "${COMPOSE[@]}" logs -f --tail=100 board 2>/dev/null || "${COMPOSE[@]}" logs -f --tail=100
+}
+
+cmd_doctor() {
+  require_docker
+  echo "=== docker ps ==="
+  "${COMPOSE[@]}" ps || true
+  echo ""
+  echo "=== ostatnie logi ==="
+  "${COMPOSE[@]}" logs --tail=30 board 2>/dev/null || "${COMPOSE[@]}" logs --tail=30
+  echo ""
+  echo "=== data/ (uid powinien być 1001) ==="
+  ls -la "$DATA_DIR" 2>/dev/null || echo "brak $DATA_DIR"
+  echo ""
+  if wait_for_http; then
+    green "HTTP OK na porcie ${BOARD_PORT:-3000}"
+  else
+    red "Brak odpowiedzi HTTP na porcie ${BOARD_PORT:-3000}"
+  fi
 }
 
 cmd_update() {
@@ -217,6 +273,7 @@ main() {
     update|pull) cmd_update ;;
     backup) cmd_backup ;;
     status|ps) cmd_status ;;
+    doctor) cmd_doctor ;;
     help|-h|--help) usage ;;
     *)
       red "Nieznana komenda: $1"
