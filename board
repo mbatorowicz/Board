@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# Board — uruchomienie produkcyjne na Linuxie (Docker)
+# Użycie: ./board up
+#         ADMIN_PASSWORD='haslo' ./board up
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+COMPOSE=(docker compose)
+ENV_FILE="${ROOT}/.env"
+DATA_DIR="${ROOT}/data"
+
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
+yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
+
+require_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    red "Brak Docker. Zainstaluj: https://docs.docker.com/engine/install/"
+    exit 1
+  fi
+  if ! docker compose version >/dev/null 2>&1; then
+    red "Brak Docker Compose v2 (docker compose)."
+    exit 1
+  fi
+}
+
+ensure_data_dir() {
+  mkdir -p "$DATA_DIR"
+  if [[ ! -f "${DATA_DIR}/.gitkeep" ]]; then
+    touch "${DATA_DIR}/.gitkeep" 2>/dev/null || true
+  fi
+}
+
+set_env_value() {
+  local key="$1"
+  local value="$2"
+  local file="$3"
+  awk -v k="$key" -v v="$value" '
+    BEGIN { found = 0 }
+    $0 ~ "^" k "=" { print k "=" v; found = 1; next }
+    { print }
+    END { if (!found) print k "=" v }
+  ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+}
+
+ensure_env() {
+  if [[ ! -f "$ENV_FILE" ]]; then
+    cp "${ROOT}/.env.example" "$ENV_FILE"
+    yellow "Utworzono .env z .env.example"
+  fi
+
+  # shellcheck disable=SC1090
+  source "$ENV_FILE" 2>/dev/null || true
+
+  if [[ -n "${ADMIN_PASSWORD:-}" ]]; then
+    set_env_value "ADMIN_PASSWORD" "$ADMIN_PASSWORD" "$ENV_FILE"
+    return
+  fi
+
+  current=$(grep -E '^ADMIN_PASSWORD=' "$ENV_FILE" | cut -d= -f2- || true)
+  if [[ -n "$current" ]]; then
+    return
+  fi
+
+  if [[ -t 0 ]]; then
+    echo ""
+    yellow "Ustaw hasło do panelu /admin (ADMIN_PASSWORD):"
+    read -rsp "  Hasło: " input
+    echo ""
+    if [[ -z "$input" ]]; then
+      red "ADMIN_PASSWORD jest wymagane."
+      exit 1
+    fi
+    set_env_value "ADMIN_PASSWORD" "$input" "$ENV_FILE"
+    green "Zapisano ADMIN_PASSWORD w .env"
+    return
+  fi
+
+  red "Brak ADMIN_PASSWORD."
+  echo "Uruchom: ADMIN_PASSWORD='twoje-haslo' ./board up"
+  exit 1
+}
+
+detect_host_ip() {
+  hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost"
+}
+
+show_status() {
+  local ip port
+  ip=$(detect_host_ip)
+  port="${BOARD_PORT:-3000}"
+  echo ""
+  green "Board działa."
+  echo "  Strona:    http://${ip}:${port}"
+  echo "  Admin:     http://${ip}:${port}/admin"
+  echo "  Dane:      ${DATA_DIR}/"
+  echo ""
+  "${COMPOSE[@]}" ps
+}
+
+usage() {
+  cat <<'EOF'
+Board — hostowanie na Linuxie (Docker)
+
+Użycie:
+  ./board up          Pierwsze uruchomienie / rebuild i start
+  ./board down        Zatrzymaj kontener
+  ./board restart     Restart bez rebuildu
+  ./board logs        Logi na żywo
+  ./board update      git pull + rebuild
+  ./board backup      Kopia zapasowa folderu data/
+  ./board status      Status kontenera
+
+Pierwsze uruchomienie (jedna komenda):
+  ADMIN_PASSWORD='silne-haslo' ./board up
+
+Development (Windows / Linux, bez Dockera):
+  npm install && npm run dev
+
+Dokumentacja: docs/
+EOF
+}
+
+cmd_up() {
+  require_docker
+  ensure_env
+  ensure_data_dir
+  yellow "Budowanie i uruchamianie (pierwszy raz może potrwać kilka minut)..."
+  "${COMPOSE[@]}" up -d --build
+  show_status
+}
+
+cmd_down() {
+  require_docker
+  "${COMPOSE[@]}" down
+}
+
+cmd_restart() {
+  require_docker
+  "${COMPOSE[@]}" restart
+  show_status
+}
+
+cmd_logs() {
+  require_docker
+  "${COMPOSE[@]}" logs -f --tail=100
+}
+
+cmd_update() {
+  require_docker
+  if [[ -d "${ROOT}/.git" ]]; then
+    git pull --ff-only
+  fi
+  ensure_env
+  "${COMPOSE[@]}" up -d --build
+  show_status
+}
+
+cmd_backup() {
+  ensure_data_dir
+  local archive="backup-board-$(date +%Y%m%d-%H%M%S).tar.gz"
+  tar -czf "$archive" -C "$ROOT" data/
+  green "Kopia: ${ROOT}/${archive}"
+}
+
+cmd_status() {
+  require_docker
+  show_status
+}
+
+main() {
+  case "${1:-up}" in
+    up|start) cmd_up ;;
+    down|stop) cmd_down ;;
+    restart) cmd_restart ;;
+    logs) cmd_logs ;;
+    update|pull) cmd_update ;;
+    backup) cmd_backup ;;
+    status|ps) cmd_status ;;
+    help|-h|--help) usage ;;
+    *)
+      red "Nieznana komenda: $1"
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

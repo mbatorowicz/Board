@@ -1,13 +1,6 @@
 # Container Station (QNAP) — wklej ten plik przy tworzeniu aplikacji.
-#
-# File Station:  DataVol1 → Container → Board  (widok: /Container/Board)
-# Docker (host): /share/Container/Board        ← ta ścieżka w context i volumes
-#
-# Jeśli build nadal nie widzi Dockerfile, spróbuj w context:
-#   /share/CACHEDEV1_DATA/Container/Board
-#
-# Zalecane: buduj obraz na PC/CI (docker build), na QNAP tylko uruchom gotowy kontener.
-# Unikaj npm ci / npm run build bezpośrednio na NAS — obciąża CPU i RAM.
+# Pełna dokumentacja: docs/DEPLOYMENT.md (sekcja QNAP)
+# Na QNAP z SSH możesz użyć zwykłego: ./board up
 
 services:
   homepage:

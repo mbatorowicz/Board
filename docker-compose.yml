@@ -1,10 +1,13 @@
 services:
-  homepage:
+  board:
+    container_name: board
     build: .
     ports:
-      - "3000:3000"
+      - "${BOARD_PORT:-3000}:3000"
     env_file:
       - .env
+    environment:
+      NODE_ENV: production
     volumes:
       - ./data:/app/.data
     restart: unless-stopped
