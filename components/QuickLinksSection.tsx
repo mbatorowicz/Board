@@ -34,10 +34,7 @@ export default function QuickLinksSection({
     persistQuickLinksCollapsed(!collapsed);
   }
 
-  const linkCount =
-    mode === "device"
-      ? editableLinks.length
-      : globalLinks.length + editableLinks.length;
+  const linkCount = globalLinks.length + editableLinks.length;
   const expanded = !collapsed;
 
   return (

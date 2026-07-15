@@ -204,6 +204,8 @@ export const copy = {
     invalidUrl: "Adres URL musi zaczynać się od https://",
     limitReached: (max: number) =>
       `Możesz dodać maksymalnie ${max} linków na tym komputerze.`,
+    duplicateUrl:
+      "Ten adres jest już na liście wspólnej lub na tym komputerze.",
   },
 } as const;
 

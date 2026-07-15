@@ -308,6 +308,7 @@ function EditableLinkRow({
 }
 
 function SortableLinksGrid({
+  prefixLinks = [],
   links: initialLinks,
   removeLabel,
   dragLabel,
@@ -317,6 +318,7 @@ function SortableLinksGrid({
   addLabel,
   onAddClick,
 }: {
+  prefixLinks?: QuickLink[];
   links: QuickLink[];
   removeLabel: string;
   dragLabel: string;
@@ -366,12 +368,15 @@ function SortableLinksGrid({
     });
   }
 
-  if (links.length === 0 && !canAddMore) {
+  if (prefixLinks.length === 0 && links.length === 0 && !canAddMore) {
     return <p className={ui.empty}>{copy.empty.links}</p>;
   }
 
   return (
     <div className={styles.linksGrid}>
+      {prefixLinks.map((link) => (
+        <LinkTile key={link.id} link={link} />
+      ))}
       {links.map((link) => (
         <EditableLinkRow
           key={link.id}
@@ -447,7 +452,11 @@ export default function QuickLinksPanel({
     return (
       <>
         <SortableLinksGrid
-          key={editableLinks.map((link) => link.id).join(",")}
+          key={[
+            ...globalLinks.map((link) => link.id),
+            ...editableLinks.map((link) => link.id),
+          ].join(",")}
+          prefixLinks={globalLinks}
           links={editableLinks}
           removeLabel={copy.deviceLinks.remove}
           dragLabel={copy.deviceLinks.dragHandle}

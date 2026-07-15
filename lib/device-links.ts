@@ -2,6 +2,11 @@ import type { QuickLink, QuickLinkInput } from "@/lib/types";
 import { readJsonFile, writeJsonFile } from "@/lib/data-file";
 import { createQuickLink } from "@/lib/quick-link";
 import { getQuickLinks } from "@/lib/links";
+import {
+  filterDeviceOnlyLinks,
+  isDuplicateOfGlobalLink,
+  normalizeLinkUrl,
+} from "@/lib/link-match";
 import { isQuickLink } from "@/lib/type-guards";
 import { validateLinkInput } from "@/lib/security/validate";
 import { LIMITS, DEVICE_LAST_SEEN_THROTTLE_MS } from "@/lib/security/limits";
@@ -40,20 +45,47 @@ function normalizeLinks(links: unknown): QuickLink[] {
   return links.filter(isQuickLink).slice(0, LIMITS.personalLinksMax);
 }
 
-async function seedLinks(): Promise<QuickLink[]> {
-  const global = await getQuickLinks();
-  return global.map((link) => ({ ...link, id: crypto.randomUUID() }));
+async function syncDeviceLinks(
+  deviceId: string,
+  stored: QuickLink[],
+  globalLinks: QuickLink[],
+): Promise<QuickLink[]> {
+  const deviceOnly = normalizeLinks(
+    filterDeviceOnlyLinks(stored, globalLinks),
+  );
+
+  if (
+    deviceOnly.length !== stored.length ||
+    deviceOnly.some((link, index) => link.id !== stored[index]?.id)
+  ) {
+    const store = await readStore();
+    const existing = store.devices[deviceId];
+    if (existing) {
+      store.devices[deviceId] = {
+        ...existing,
+        links: deviceOnly,
+      };
+      await writeStore(store);
+    }
+  }
+
+  return deviceOnly;
 }
 
 export async function getOrInitDeviceLinks(
   deviceId: string,
   meta?: { host?: string },
 ): Promise<QuickLink[]> {
+  const globalLinks = await getQuickLinks();
   const store = await readStore();
   const existing = store.devices[deviceId];
 
   if (existing) {
-    const links = normalizeLinks(existing.links);
+    const links = await syncDeviceLinks(
+      deviceId,
+      normalizeLinks(existing.links),
+      globalLinks,
+    );
     const now = Date.now();
     const lastSeen = Date.parse(existing.lastSeenAt);
     const hostChanged =
@@ -66,7 +98,7 @@ export async function getOrInitDeviceLinks(
 
     if (shouldTouch) {
       store.devices[deviceId] = {
-        ...existing,
+        ...store.devices[deviceId]!,
         links,
         lastSeenAt: new Date().toISOString(),
         ...(meta?.host ? { lastHost: meta.host.slice(0, 253) } : {}),
@@ -76,17 +108,16 @@ export async function getOrInitDeviceLinks(
     return links;
   }
 
-  const links = await seedLinks();
   const now = new Date().toISOString();
   store.devices[deviceId] = {
     deviceId,
-    links,
+    links: [],
     createdAt: now,
     lastSeenAt: now,
     ...(meta?.host ? { lastHost: meta.host.slice(0, 253) } : {}),
   };
   await writeStore(store);
-  return links;
+  return [];
 }
 
 export async function saveDeviceLinks(
@@ -99,9 +130,14 @@ export async function saveDeviceLinks(
     return false;
   }
 
+  const globalLinks = await getQuickLinks();
+  const deviceOnly = normalizeLinks(
+    filterDeviceOnlyLinks(links, globalLinks),
+  );
+
   store.devices[deviceId] = {
     ...existing,
-    links: normalizeLinks(links),
+    links: deviceOnly,
     lastSeenAt: new Date().toISOString(),
   };
   await writeStore(store);
@@ -111,15 +147,27 @@ export async function saveDeviceLinks(
 export async function addDeviceLink(
   deviceId: string,
   input: QuickLinkInput,
-): Promise<{ link: QuickLink } | { error: "limit" | "invalid" | "missing" }> {
+): Promise<
+  { link: QuickLink } | { error: "limit" | "invalid" | "missing" | "duplicate" }
+> {
   const validated = validateLinkInput(input);
   if (!validated) {
     return { error: "invalid" };
   }
 
+  const globalLinks = await getQuickLinks();
+  if (isDuplicateOfGlobalLink(validated.url, globalLinks)) {
+    return { error: "duplicate" };
+  }
+
   const links = await getOrInitDeviceLinks(deviceId);
   if (links.length >= LIMITS.personalLinksMax) {
     return { error: "limit" };
+  }
+
+  const normalized = normalizeLinkUrl(validated.url);
+  if (links.some((link) => normalizeLinkUrl(link.url) === normalized)) {
+    return { error: "duplicate" };
   }
 
   const link = createQuickLink(validated);

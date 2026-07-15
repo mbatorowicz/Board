@@ -38,7 +38,9 @@ export async function addDeviceLinkAction(formData: FormData): Promise<void> {
     const message =
       result.error === "limit"
         ? copy.deviceLinks.limitReached(30)
-        : copy.deviceLinks.invalidUrl;
+        : result.error === "duplicate"
+          ? copy.deviceLinks.duplicateUrl
+          : copy.deviceLinks.invalidUrl;
     await setFlash({ kind: "error", message });
   }
 
